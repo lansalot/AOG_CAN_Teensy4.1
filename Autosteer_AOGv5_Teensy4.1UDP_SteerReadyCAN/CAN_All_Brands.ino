@@ -294,7 +294,12 @@ void VBus_Receive()
             {
                 engageCAN = bitRead(VBusReceiveData.buf[0],2);
                 Time = millis();
+#ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
                 digitalWrite(engageLED,HIGH); 
+#endif
                 relayTime = ((millis() + 1000));
                 //*****Turn saftey valve ON**********
                 if (engageCAN == 1) digitalWrite(PWM2_RPWM, 1);       
@@ -304,7 +309,12 @@ void VBus_Receive()
             {
               engageCAN = bitRead(VBusReceiveData.buf[1],0);
               Time = millis();
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               relayTime = ((millis() + 1000));
               //*****Turn saftey valve ON**********
               if (engageCAN == 1) digitalWrite(PWM2_RPWM, 1);       
@@ -314,7 +324,12 @@ void VBus_Receive()
             {
                engageCAN = bitRead(VBusReceiveData.buf[0],2);
                Time = millis();
+#ifdef isAllInOneBoard
+               digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+               digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
                digitalWrite(engageLED,HIGH); 
+#endif
                relayTime = ((millis() + 1000));
                //*****Turn saftey valve ON**********
                if (engageCAN == 1) digitalWrite(PWM2_RPWM, 1);       
@@ -346,7 +361,12 @@ void VBus_Receive()
                 if ((VBusReceiveData.buf[0])== 15 && (VBusReceiveData.buf[1])== 96 && (VBusReceiveData.buf[2])== 1)
                 {   
                     Time = millis();
+#ifdef isAllInOneBoard
+                    digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                    digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
                     digitalWrite(engageLED,HIGH); 
+#endif
                     engageCAN = 1;
                     relayTime = ((millis() + 1000));
                 }
@@ -393,7 +413,12 @@ void VBus_Receive()
                 if ((VBusReceiveData.buf[0])== 15 && (VBusReceiveData.buf[1])== 96 && (VBusReceiveData.buf[2])== 1)
                 {
                     Time = millis();
+#ifdef isAllInOneBoard
+                    digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                    digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
                     digitalWrite(engageLED,HIGH); 
+#endif
                     engageCAN = 1;
                     relayTime = ((millis() + 1000));
                 }
@@ -491,7 +516,12 @@ void ISO_Receive()
           if (ISOBusReceiveData.id == 0x18EF2CF0)   //**Fendt Engage Message**  
           {
             if ((ISOBusReceiveData.buf[0])== 0x0F && (ISOBusReceiveData.buf[1])== 0x60 && (ISOBusReceiveData.buf[2])== 0x01){   
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               engageCAN = 1;
               relayTime = ((millis() + 1000));
             }
@@ -546,7 +576,12 @@ void K_Receive()
           if (KBusReceiveData.buf[1]==0x88 && KBusReceiveData.buf[4]==0x80) // Fendt Auto Steer Go   
           {
               Time = millis();
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               engageCAN = 1;
               relayTime = ((millis() + 1000));
           }
@@ -560,7 +595,12 @@ void K_Receive()
             if ((KBusReceiveData.buf[3])== 0xF6)
             {   
               Time = millis();
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               engageCAN = 1;
               relayTime = ((millis() + 1000));
             }
@@ -575,7 +615,12 @@ void K_Receive()
             if ((KBusReceiveData.buf[0])== 130 && (KBusReceiveData.buf[1])== 1)
             {   
               Time = millis();
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               engageCAN = 1;
               relayTime = ((millis() + 1000));
             }
@@ -583,7 +628,12 @@ void K_Receive()
             if ((KBusReceiveData.buf[0])== 178 && (KBusReceiveData.buf[1])== 4)
             {   
               Time = millis();
+#ifdef isAllInOneBoard
+              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+#else
               digitalWrite(engageLED,HIGH); 
+#endif
               engageCAN = 1;
               relayTime = ((millis() + 1000));
             }

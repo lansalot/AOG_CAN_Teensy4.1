@@ -8,6 +8,9 @@
 
 //----------------------------------------------------------
 
+// uncomment the following line if you're using the All-In-One-Board
+#define isAllInOneBoard
+
 //Tony / @Commonrail Version 05.03.2023
 //30.06.2022  - Ryan / @RGM Added JCB CAN engage message
 //02.07.2022  - Added Claas headland from Ryan
@@ -54,7 +57,7 @@
 
 //----------------------------------------------------------
 
-String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AIO mods)");
 
   ////////////////// User Settings /////////////////////////  
 
@@ -86,10 +89,15 @@ String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
   #define PWM2_RPWM  9 //D9
 
   //--------------------------- Switch Input Pins ------------------------
+#ifdef isAllInOneBoard
+#define STEERSW_PIN 32
+#define WORKSW_PIN 34
+#define REMOTE_PIN 37
+#else
   #define STEERSW_PIN 6 //PD6
   #define WORKSW_PIN 7  //PD7
   #define REMOTE_PIN 8  //PB0
-
+#endif
   #define CONST_180_DIVIDED_BY_PI 57.2957795130823
   #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
 
@@ -145,8 +153,17 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_256> K_Bus;    //Tractor / Control Bus
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_256> ISO_Bus;  //ISO Bus
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> V_Bus;    //Steering Valve Bus
 
-#define ledPin 5        //Option for LED, CAN Valve Ready To Steer.
-#define engageLED 24    //Option for LED, to see if Engage message is recived.
+#ifdef isAllInOneBoard
+	#define Power_on_LED 5            //Red
+	#define Ethernet_Active_LED 6     //Green
+	#define GPSRED_LED 9              //Red (Flashing = No RTK)
+	#define GPSGREEN_LED 10           //Green (ON = RTK)
+	#define AUTOSTEER_STANDBY_LED 11  //Red
+	#define AUTOSTEER_ACTIVE_LED 12   //Green
+#else
+	#define ledPin 5        //Option for LED, CAN Valve Ready To Steer.
+	#define engageLED 24    //Option for LED, to see if Engage message is recived.
+#endif
 
 uint8_t Brand = 1;              //Variable to set brand via serial monitor.
 uint8_t gpsMode = 1;            //Variable to set GPS mode via serial monitor.
@@ -356,6 +373,16 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
     Serial.println(F_CPU_ACTUAL);
 
    //keep pulled high and drag low to activate, noise free safe   
+#ifdef isAllInOneBoard
+    pinMode(Power_on_LED, OUTPUT);
+    digitalWrite(Power_on_LED, HIGH);
+    pinMode(Ethernet_Active_LED, OUTPUT);
+    pinMode(GPSRED_LED, OUTPUT);
+    pinMode(GPSGREEN_LED, OUTPUT);
+    pinMode(AUTOSTEER_STANDBY_LED, OUTPUT);
+    pinMode(AUTOSTEER_ACTIVE_LED, OUTPUT);
+#endif
+
     pinMode(WORKSW_PIN, INPUT_PULLUP); 
     pinMode(STEERSW_PIN, INPUT_PULLUP); 
     pinMode(REMOTE_PIN, INPUT_PULLUP); 
@@ -500,11 +527,16 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
 
     //----Teensy 4.1 CANBus--Start---------------------
 
+#ifdef isAllInOneBoard
+      pinMode(AUTOSTEER_STANDBY_LED, LOW);
+      pinMode(AUTOSTEER_ACTIVE_LED, LOW);
+#else
       pinMode(ledPin, OUTPUT);    //CAN Valve Ready LED
       digitalWrite(ledPin, LOW);
 
       pinMode(engageLED,OUTPUT);  //CAN engage LED
       digitalWrite(engageLED,LOW);
+#endif
 
       Serial.println("\r\nStarting CAN-Bus Ports");
       if (Brand == 0) Serial.println("Brand = Claas (Set Via Service Tool)");
@@ -563,17 +595,38 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
       
       //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
       if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
-      
+#ifdef isAllInOneBoard
+      if (Ethernet.linkStatus() == LinkON)
+      {
+          digitalWrite(Power_on_LED, LOW);
+          digitalWrite(Ethernet_Active_LED, HIGH);
+      }
+      else
+      {
+          digitalWrite(Ethernet_Active_LED, LOW);
+          digitalWrite(Power_on_LED, HIGH);
+      }
+#endif
       //read all the switches
 
       //CANBus     
       if (steeringValveReady == 20 || steeringValveReady == 16) 
       {
+#ifdef isAllInOneBoard
+          digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
+          digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+#else
         digitalWrite(ledPin, HIGH);
+#endif
       } 
       else 
       {
+#ifdef isAllInOneBoard
+          digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+          digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+#else
         digitalWrite(ledPin, LOW);
+#endif
       }
   
       workSwitch = digitalRead(WORKSW_PIN);     // read work switch (PCB pin)
@@ -756,7 +809,12 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
       K_Receive();
 
     if ((millis()) > relayTime){
+#ifdef isAllInOneBoard
+        digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
+        digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+#else
     digitalWrite(engageLED,LOW);
+#endif
     engageCAN = 0;
     }
 

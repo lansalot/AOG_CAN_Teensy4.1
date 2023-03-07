@@ -55,6 +55,16 @@ void GGA_Handler() //Rec'd GGA
     tempString = fixQuality;
     fixTypeGGA = tempString.toInt();
 
+#ifdef isAllInOneBoard
+    if (*fixQuality == '4') {
+        digitalWrite(GPSRED_LED, LOW);
+        digitalWrite(GPSGREEN_LED, HIGH);
+    }
+    else {
+        digitalWrite(GPSGREEN_LED, LOW);
+        digitalWrite(GPSRED_LED, HIGH);
+    }
+#endif
     // satellite #
     parser.getArg(6, numSats);
 

@@ -1,11 +1,19 @@
+#ifdef isAllInOneBoard
+  #define GPS Serial7
+#else
+  #define GPS Serial3
+#endif // isAllInOneBoard
 
-#define GPS Serial3
 char rxbuffer[512];         //Extra serial rx buffer
 char txbuffer[512];         //Extra serial tx buffer
 
+// No RadioRTK support on AIO I'm afraid!
+
+#ifndef isAllInOneBoard
 #define RadioRTK Serial7
 #define RadioBaudRate 115200
 char RTKrxbuffer[512];      //Extra serial rx buffer
+#endif
 
 char nmeaBuffer[200];
 int count=0;
@@ -22,8 +30,10 @@ void GPS_setup()
   GPS.addMemoryForRead(rxbuffer, 512);
   GPS.addMemoryForWrite(txbuffer, 512);
 
+#ifndef isAllInOneBoard
   RadioRTK.begin(RadioBaudRate);
   RadioRTK.addMemoryForRead(RTKrxbuffer, 512);
+#endif
 
   // the dash means wildcard
   parser.setErrorHandler(errorHandler);
@@ -152,11 +162,14 @@ void Forward_Ntrip()
         GPS.write(NtripData, NtripSize); 
     }
 
+#ifndef isAllInOneBoard
 //Check for Radio RTK
     if (RadioRTK.available())
     {
         GPS.write(RadioRTK.read());
     }
+#endif
+
 }
     
 //-------------------------------------------------------------------------------------------------
