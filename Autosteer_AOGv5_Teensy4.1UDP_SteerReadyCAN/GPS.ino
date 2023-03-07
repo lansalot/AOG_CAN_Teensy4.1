@@ -7,7 +7,7 @@
 char rxbuffer[512];         //Extra serial rx buffer
 char txbuffer[512];         //Extra serial tx buffer
 
-// No RadioRTK support on AIO I'm afraid!
+// No RadioRTK code support required on AIO, it's on-board
 
 #ifndef isAllInOneBoard
 #define RadioRTK Serial7
