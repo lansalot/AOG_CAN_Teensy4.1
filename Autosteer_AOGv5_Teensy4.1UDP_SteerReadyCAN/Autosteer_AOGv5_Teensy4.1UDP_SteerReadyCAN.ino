@@ -9,7 +9,7 @@
 //----------------------------------------------------------
 
 // uncomment the following line if you're using the All-In-One-Board
-#define isAllInOneBoard
+// #define isAllInOneBoard
 
 //Tony / @Commonrail Version 05.03.2023
 //30.06.2022  - Ryan / @RGM Added JCB CAN engage message
@@ -57,7 +57,11 @@
 
 //----------------------------------------------------------
 
+#ifdef isAllInOneBoard
 String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AIO mods)");
+#else
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
+#endif
 
   ////////////////// User Settings /////////////////////////  
 
@@ -137,7 +141,7 @@ elapsedMillis tempChecker;
   byte mac[] = { 0x00,0x00,0x56,0x00,0x00,0x7E };
   
   // Buffer For Receiving UDP Data
-  byte udpData[128];    // Incomming Buffer
+  byte udpData[128];    // Incoming Buffer
   byte NtripData[512];   
 
   // An EthernetUDP instance to let us send and receive packets over UDP
