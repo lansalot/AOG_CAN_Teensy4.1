@@ -9,7 +9,8 @@
 //----------------------------------------------------------
 
 // uncomment the following line if you're using the All-In-One-Board
-// #define isAllInOneBoard
+//
+//#define isAllInOneBoard
 
 //Tony / @Commonrail Version 05.03.2023
 //30.06.2022  - Ryan / @RGM Added JCB CAN engage message
@@ -62,7 +63,6 @@ String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AIO mods)");
 #else
 String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
 #endif
-
   ////////////////// User Settings /////////////////////////  
 
   //How many degrees before decreasing Max PWM
@@ -94,13 +94,13 @@ String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
 
   //--------------------------- Switch Input Pins ------------------------
 #ifdef isAllInOneBoard
-#define STEERSW_PIN 32
-#define WORKSW_PIN 34
-#define REMOTE_PIN 37
+    #define STEERSW_PIN 32
+    #define WORKSW_PIN 34
+    #define REMOTE_PIN 37
 #else
-  #define STEERSW_PIN 6 //PD6
-  #define WORKSW_PIN 7  //PD7
-  #define REMOTE_PIN 8  //PB0
+    #define STEERSW_PIN 6 //PD6
+    #define WORKSW_PIN 7  //PD7
+    #define REMOTE_PIN 8  //PB0
 #endif
   #define CONST_180_DIVIDED_BY_PI 57.2957795130823
   #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
@@ -141,7 +141,7 @@ elapsedMillis tempChecker;
   byte mac[] = { 0x00,0x00,0x56,0x00,0x00,0x7E };
   
   // Buffer For Receiving UDP Data
-  byte udpData[128];    // Incoming Buffer
+  byte udpData[128];    // Incomming Buffer
   byte NtripData[512];   
 
   // An EthernetUDP instance to let us send and receive packets over UDP
@@ -180,7 +180,7 @@ boolean workCAN = 0;            //Variable for Workswitch from CAN
 uint8_t ISORearHitch = 250;     //Variable for hitch height from ISOBUS (0-250 *0.4 = 0-100%)
 uint8_t KBUSRearHitch = 250;    //Variable for hitch height from KBUS (0-250 *0.4 = 0-100%) - CaseIH tractor bus
 boolean Service = 0;            //Variable for Danfoss Service Tool Mode
-boolean ShowCANData = 0;        //Variable for Showing CAN Data
+boolean ShowCANData = 1;        //Variable for Showing CAN Data
 
 boolean goDown = false, endDown = false , bitState = false, bitStateOld = false;  //CAN Hitch Control
 byte hydLift = 0;
@@ -205,7 +205,7 @@ int16_t FendtEstCurve = 0;       //Variable for WAS from CAN (Fendt Only)
 int16_t FendtSetCurve = 0;       //Variable for Set Curve to CAN CAN (Fendt Only)
 
 
-//WAS Calabration
+//WAS Calibration
 float inputWAS[] =          { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};  //Input WAS do not adjust
 float outputWAS[] =         { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
 float outputWASFendt[] =    { -60.00, -54.0, -48.0, -42.3, -36.1, -30.1, -23.4, -17.1, -11.0, -5.5, 0, 5.5, 11.0, 17.1, 23.4, 30.1, 36.1, 42.3, 48.0, 54.0, 60.0};  //Fendt 720 SCR, CPD = 80
@@ -213,6 +213,8 @@ float outputWASFendt[] =    { -60.00, -54.0, -48.0, -42.3, -36.1, -30.1, -23.4, 
 boolean sendCAN = 0;              //Send CAN message every 2nd cycle (If needed ?)
 uint8_t steeringValveReady = 0;   //Variable for Steering Valve State from CAN
 boolean intendToSteer = 0;        //Do We Intend to Steer?
+
+uint8_t Direction;
 
 //----Teensy 4.1 CANBus--End-----------------------
     
@@ -274,6 +276,8 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
   //show life in AgIO - v5.5
   uint8_t helloAgIO[] = {0x80,0x81, 0x7f, 0xC7, 1, 0, 0x47 };
   uint8_t helloCounter=0;
+
+  CAN_message_t CAN_Status_To_UDP;
   
   //Heart beat hello AgIO - v5.6
   uint8_t helloFromIMU[] = { 128, 129, 121, 121, 5, 0, 0, 0, 0, 0, 71 };
@@ -285,12 +289,12 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
   int16_t AOGSize = sizeof(AOG);
 
   //fromAutoSteerData FD 250 - sensor values etc
-  uint8_t PGN_250[] = {0x80,0x81, 0x7f, 0xFA, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC }; 
+  uint8_t PGN_250[] = {0x80,0x81, 0x7f, 0xFA, 8, 0, 0, 0, 0, 0,0,0,99, 0xCC }; // piggyback the CANBUSDirection into data[8], 99 default as "no canbus"
   int8_t PGN_250_Size = sizeof(PGN_250) - 1;
   uint8_t aog2Count = 0;
   uint8_t pressureReading;
   uint8_t currentReading;
- 
+
   //EEPROM
   int16_t EEread = 0;
 
@@ -367,10 +371,34 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
   
   };  Config aogConfig;   //4 bytes
 
+  uint8_t UDP_VBusData[20];
+  uint8_t UDP_KBusData[20];
+  uint8_t UDP_ISOBusData[20];
+
+
 //*******************************************************************************
  
   void setup()
-  {    
+  {
+      UDP_VBusData[0] = 0x80;
+      UDP_VBusData[1] = 0x81;
+      UDP_VBusData[2] = 0x7f;
+      UDP_VBusData[3] = 0xAB;
+      UDP_VBusData[4] = 0;
+
+      UDP_KBusData[0] = 0x80;
+      UDP_KBusData[1] = 0x81;
+      UDP_KBusData[2] = 0x7f;
+      UDP_KBusData[3] = 0xAB;
+      UDP_KBusData[4] = 0x1;
+
+      UDP_ISOBusData[0] = 0x80;
+      UDP_ISOBusData[1] = 0x81;
+      UDP_ISOBusData[2] = 0x7f;
+      UDP_ISOBusData[3] = 0xAB;
+      UDP_ISOBusData[4] = 0x2;
+
+
     delay(500);                         //Small delay so serial can monitor start up
     set_arm_clock(450000000);           //Set CPU speed to 450mhz
     Serial.print("CPU speed set to: ");
@@ -592,13 +620,18 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
     //--Main Timed Loop----------------------------------   
     if (currentTime - lastTime >= LOOP_TIME)
     {
+
       lastTime = currentTime;
-  
+     
       //reset debounce
       encEnable = true;
-      
+
       //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-      if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
+      if (watchdogTimer++ > 250) {
+          watchdogTimer = WATCHDOG_FORCE_VALUE;
+          // reset CANBUSDirection to "unknown"
+          Direction = 99;
+      }
 #ifdef isAllInOneBoard
       if (Ethernet.linkStatus() == LinkON)
       {
@@ -812,6 +845,10 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
       ISO_Receive();
       K_Receive();
 
+      Udp.beginPacket(ipDestination, 9999);
+      Udp.write(UDP_VBusData, UDP_VBusData[4]);
+      Udp.endPacket();
+
     if ((millis()) > relayTime){
 #ifdef isAllInOneBoard
         digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
@@ -896,7 +933,12 @@ void udpSteerRecv(int sizeToRead)
 
   if (udpData[0] == 0x80 && udpData[1] == 0x81 && udpData[2] == 0x7F) //Data
   {
-    if (udpData[3] == 0xFE)  //254
+    if (udpData[3] == 0xAA) // CANBUS set manufacturer
+    {
+        Serial.println("Received CANBUS manufacturer change");
+
+    }
+    else if (udpData[3] == 0xFE)  //254, Steer data
     {
       gpsSpeed = ((float)(udpData[5] | udpData[6] << 8))*0.1;
 
@@ -1018,7 +1060,7 @@ void udpSteerRecv(int sizeToRead)
 
     }
           
-//Machine Data
+    //Machine Data
     else if (udpData[3] == 0xEF)  //239 Machine Data
     {
       hydLift = udpData[7];
@@ -1028,7 +1070,7 @@ void udpSteerRecv(int sizeToRead)
       pgn = dataLength = 0;
     }
 
-//Machine Settings
+    //Machine Settings
     else if (udpData[3] == 0xEE) //238 Machine Settings 
     {         
       aogConfig.raiseTime = udpData[5];
@@ -1052,7 +1094,7 @@ void udpSteerRecv(int sizeToRead)
     }
 
     //steer settings
-    else if (udpData[3] == 0xFC)  //252
+    else if (udpData[3] == 0xFC)  //252, steer settings
     {      
       //PID values
       steerSettings.Kp = udpData[5];   // read Kp from AgOpenGPS
@@ -1156,7 +1198,7 @@ void udpSteerRecv(int sizeToRead)
 
     }//end D0
 
-    else if (udpData[3] == 201)
+    else if (udpData[3] == 201) // subnet change
     {
      //make really sure this is the subnet pgn
      if (udpData[4] == 5 && udpData[5] == 201 && udpData[6] == 201)
@@ -1172,7 +1214,7 @@ void udpSteerRecv(int sizeToRead)
     }//end 201
 
     //Who Am I ?
-    else if (udpData[3] == 202)
+    else if (udpData[3] == 202)  // subnet scan request
     {
      //make really sure this is the reply pgn
      if (udpData[4] == 3 && udpData[5] == 202 && udpData[6] == 202)

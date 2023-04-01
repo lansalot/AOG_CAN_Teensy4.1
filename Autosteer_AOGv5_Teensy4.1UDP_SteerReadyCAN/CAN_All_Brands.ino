@@ -468,17 +468,23 @@ void VBus_Receive()
         if (ShowCANData == 1)
         {
             Serial.print(Time);
-            Serial.print(", V-Bus"); 
+            Serial.print(", V-Bus");
             Serial.print(", MB: "); Serial.print(VBusReceiveData.mb);
-            Serial.print(", ID: 0x"); Serial.print(VBusReceiveData.id, HEX );
-            Serial.print(", EXT: "); Serial.print(VBusReceiveData.flags.extended );
+            Serial.print(", ID: 0x"); Serial.print(VBusReceiveData.id, HEX);
+            Serial.print(", EXT: "); Serial.print(VBusReceiveData.flags.extended);
             Serial.print(", LEN: "); Serial.print(VBusReceiveData.len);
             Serial.print(", DATA: ");
-            for ( uint8_t i = 0; i < 8; i++ ) 
+
+            for (uint8_t i = 0; i < VBusReceiveData.len; i++)
             {
-              Serial.print(VBusReceiveData.buf[i]); Serial.print(", ");
+                Serial.print(VBusReceiveData.buf[i]); Serial.print(", ");
+                UDP_VBusData[i + 5] = VBusReceiveData.buf[i];
             }
-  
+            UDP_VBusData[5] = 2;
+            UDP_VBusData[6] = VBusReceiveData.mb;
+            UDP_VBusData[7] = 12;
+        };
+
             Serial.println("");
         }//End Show Data
 
@@ -548,8 +554,8 @@ void ISO_Receive()
             if (PGN == 44032) Serial.print("= Curvature Data");
             else if(PGN == 65093) Serial.print("= Rear Hitch Data");
             else if (PGN == 65096) Serial.print("= Wheel Speed, Direction, Distance");
-            else if (PGN == 65267) Serial.print("= GPS Vechile Pos");
-            else if (PGN == 65256) Serial.print("= GPS Vechile Heading/Speed");
+            else if (PGN == 65267) Serial.print("= GPS Vehicle Pos");
+            else if (PGN == 65256) Serial.print("= GPS Vehicle Heading/Speed");
             else if (PGN == 65254) Serial.print("= GPS Time");
             else if (PGN == 129029) Serial.print("= GPS Info (GGA)");
 
