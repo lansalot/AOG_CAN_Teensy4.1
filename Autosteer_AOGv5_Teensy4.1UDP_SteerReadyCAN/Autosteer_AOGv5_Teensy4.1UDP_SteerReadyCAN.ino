@@ -371,33 +371,19 @@ uint8_t Direction;
   
   };  Config aogConfig;   //4 bytes
 
-  uint8_t UDP_VBusData[20];
-  uint8_t UDP_KBusData[20];
-  uint8_t UDP_ISOBusData[20];
+  uint8_t UDP_CANBusData[20];
+  bool VBUSSend, ISOBUSSend, KBUSSend;
 
 
 //*******************************************************************************
  
   void setup()
   {
-      UDP_VBusData[0] = 0x80;
-      UDP_VBusData[1] = 0x81;
-      UDP_VBusData[2] = 0x7f;
-      UDP_VBusData[3] = 0xAB;
-      UDP_VBusData[4] = 0;
-
-      UDP_KBusData[0] = 0x80;
-      UDP_KBusData[1] = 0x81;
-      UDP_KBusData[2] = 0x7f;
-      UDP_KBusData[3] = 0xAB;
-      UDP_KBusData[4] = 0x1;
-
-      UDP_ISOBusData[0] = 0x80;
-      UDP_ISOBusData[1] = 0x81;
-      UDP_ISOBusData[2] = 0x7f;
-      UDP_ISOBusData[3] = 0xAB;
-      UDP_ISOBusData[4] = 0x2;
-
+      UDP_CANBusData[0] = 0x80;
+      UDP_CANBusData[1] = 0x81;
+      UDP_CANBusData[2] = 0x7f;
+      UDP_CANBusData[3] = 0xAB;
+      UDP_CANBusData[4] = 2;        // 0 = KBUS, 1 = ISOBUS, 2 = VBUS
 
     delay(500);                         //Small delay so serial can monitor start up
     set_arm_clock(450000000);           //Set CPU speed to 450mhz
@@ -842,12 +828,16 @@ uint8_t Direction;
 
     //--CAN--Start--
       VBus_Receive();
+      if (VBUSSend) {
+          Udp.beginPacket(ipDestination, 9999);
+          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+          Udp.endPacket();
+          Serial.println("Sending VBUS status packet");
+      }
       ISO_Receive();
       K_Receive();
 
-      Udp.beginPacket(ipDestination, 9999);
-      Udp.write(UDP_VBusData, UDP_VBusData[4]);
-      Udp.endPacket();
+
 
     if ((millis()) > relayTime){
 #ifdef isAllInOneBoard
@@ -935,7 +925,29 @@ void udpSteerRecv(int sizeToRead)
   {
     if (udpData[3] == 0xAA) // CANBUS set manufacturer
     {
-        Serial.println("Received CANBUS manufacturer change");
+        Serial.print("Received CANBUS manufacturer change to manufacturer ");
+        Serial.println(udpData[5]);
+        switch (udpData[5])
+        {
+        case 0: Claas();
+            break;
+        case 1: Valtra();
+            break;
+        case 2: CNH();
+            break;
+        case 3: Fendt();
+            break;
+        case 4: JCB();
+            break;
+        case 5: FendtOne();
+            break;
+        case 6: Lindner();
+            break;
+        case 7: AgOpenGPS();
+            break;
+        default:
+            break;
+        }
 
     }
     else if (udpData[3] == 0xFE)  //254, Steer data

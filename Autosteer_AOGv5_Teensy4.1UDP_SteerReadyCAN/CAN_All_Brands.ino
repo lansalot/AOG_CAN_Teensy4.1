@@ -273,12 +273,11 @@ else if (Brand == 7){
 }
 
 //---Receive V_Bus message
-
 void VBus_Receive()
 {
     CAN_message_t VBusReceiveData;
     if (V_Bus.read(VBusReceiveData)) {
-
+        VBUSSend = true;
         if (Brand == 0)
         {
           //**Current Wheel Angle & Valve State**
@@ -465,6 +464,17 @@ void VBus_Receive()
         
         }//End Brand == 7 
 
+        // Assemble CANBUS UDP response
+        UDP_CANBusData[4] = 2; // V-Bus
+        UDP_CANBusData[5] = 6 + VBusReceiveData.len; // Length
+        UDP_CANBusData[6] = VBusReceiveData.mb;
+        UDP_CANBusData[7] = VBusReceiveData.id; // 4 bytes
+        UDP_CANBusData[11] = VBusReceiveData.len;
+        for (uint8_t i = 0; i < VBusReceiveData.len; i++)
+        {
+            UDP_CANBusData[i + 12] = VBusReceiveData.buf[i];
+        }
+
         if (ShowCANData == 1)
         {
             Serial.print(Time);
@@ -478,19 +488,15 @@ void VBus_Receive()
             for (uint8_t i = 0; i < VBusReceiveData.len; i++)
             {
                 Serial.print(VBusReceiveData.buf[i]); Serial.print(", ");
-                UDP_VBusData[i + 5] = VBusReceiveData.buf[i];
             }
-            UDP_VBusData[5] = 2;
-            UDP_VBusData[6] = VBusReceiveData.mb;
-            UDP_VBusData[7] = 12;
-        };
-
             Serial.println("");
         }//End Show Data
 
     }//End if message 
+    else {
+        VBUSSend = false;
+    }
 }//End Receive V-Bus Void
-
 
 //---Receive ISO_Bus message
 void ISO_Receive()
@@ -498,6 +504,7 @@ void ISO_Receive()
     CAN_message_t ISOBusReceiveData;
     if (ISO_Bus.read(ISOBusReceiveData)) 
     { 
+        ISOBUSSend = true;
       Time = millis();
       //Put code here to sort a message out from ISO-Bus if needed 
   
@@ -534,6 +541,17 @@ void ISO_Receive()
           }
       }
 
+      // Assemble CANBUS UDP response
+      UDP_CANBusData[4] = 1; // ISO-Bus
+      UDP_CANBusData[5] = 6 + ISOBusReceiveData.len; // Length + 2 for PGN
+      UDP_CANBusData[6] = ISOBusReceiveData.mb;
+      UDP_CANBusData[7] = ISOBusReceiveData.id; // 4 bytes
+      UDP_CANBusData[11] = ISOBusReceiveData.len;
+      for (uint8_t i = 0; i < ISOBusReceiveData.len; i++)
+      {
+          UDP_CANBusData[i + 12] = ISOBusReceiveData.buf[i];
+      }
+      UDP_CANBusData[7 + ISOBusReceiveData.len] = PGN;
         if (ShowCANData == 1){
             Serial.print(Time);
             Serial.print(", ISO-Bus"); 
@@ -563,6 +581,9 @@ void ISO_Receive()
         }//End Show Data
   
     }
+    else {
+        ISOBUSSend = false;
+    }
 }
 
 //---Receive K_Bus message
@@ -570,6 +591,7 @@ void K_Receive()
 {
     CAN_message_t KBusReceiveData;
     if (K_Bus.read(KBusReceiveData)) { 
+        KBUSSend = true;
       //Put code here to sort a message out from K-Bus if needed 
   
       if (Brand == 3)
@@ -654,6 +676,15 @@ void K_Receive()
           }
       }
 
+      UDP_CANBusData[4] = 0; // K-Bus
+      UDP_CANBusData[5] = 6 + KBusReceiveData.len; // Length + 2 for PGN
+      UDP_CANBusData[6] = KBusReceiveData.mb;
+      UDP_CANBusData[7] = KBusReceiveData.id; // 4 bytes
+      UDP_CANBusData[11] = KBusReceiveData.len;
+      for (uint8_t i = 0; i < KBusReceiveData.len; i++)
+      {
+          UDP_CANBusData[i + 12] = KBusReceiveData.buf[i];
+      }
         if (ShowCANData == 1)
         {
             Serial.print(Time);
@@ -671,6 +702,9 @@ void K_Receive()
             Serial.println("");
         }//End Show Data
    
+    }
+    else {
+            KBUSSend = false;
     }
 }
 
