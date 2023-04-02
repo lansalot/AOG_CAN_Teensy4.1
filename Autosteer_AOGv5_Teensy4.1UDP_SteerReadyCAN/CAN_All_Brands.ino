@@ -30,8 +30,14 @@ if (Brand == 1){
   CANBUS_ModuleID = 0x1C;
   }  
 if (Brand == 2){
-  V_Bus.setFIFOFilter(0, 0x0CACAA08, EXT);  //CaseIH Curve Data & Valve State Message
-  V_Bus.setFIFOUserFilter(1, 0x0CEFAA08, 0x0CEF08AA, 0x0000FF00, EXT);
+    //myCan.setFIFOFilter(0, 0x123, STD); // Set filter0 to allow STANDARD CAN ID 0x123 to be collected by FIFO. 
+    //myCan.setFIFOFilter(1, 0x456, EXT); // Set filter1 to allow EXTENDED CAN ID 0x456 to be collected by FIFO. 
+    //myCan.setMBFilter(MB6, 0x123); // Set mailbox 6 to allow CAN ID 0x123 to be collected. 
+    // https://github.com/tonton81/FlexCAN_T4
+    // FCTP_FUNC bool FCTP_OPT::setFIFOFilter(uint8_t filter, uint32_t id1, const FLEXCAN_IDE & ide, const FLEXCAN_IDE & remote) {
+  V_Bus.setFIFOFilter(0, 0x18ff1daa, EXT);  //CaseIH Curve Data & Valve State Message  // 0x0CACAA08)
+  //FCTP_FUNC bool FCTP_OPT::setFIFOUserFilter(uint8_t filter, uint32_t id1, uint32_t id2, uint32_t mask, const FLEXCAN_IDE & ide, const FLEXCAN_IDE & remote) {
+    V_Bus.setFIFOUserFilter(1, 0x0CEFAA08, 0x0CEF08AA, 0x0000FF00, EXT);
   CANBUS_ModuleID = 0xAA;
   }   
 if (Brand == 3){
@@ -170,12 +176,12 @@ else if (Brand == 1){
     V_Bus.write(VBusSendData);
 }
 else if (Brand == 2){
-    VBusSendData.id = 0x0CAD08AA;
+    VBusSendData.id = 0x0CAD08AA;   // 0x0CACAA08 is the WAS, this would be curve here
     VBusSendData.flags.extended = true;
     VBusSendData.len = 8;
     VBusSendData.buf[0] = lowByte(setCurve);
     VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+    if (intendToSteer == 1)VBusSendData.buf[2] = 253; // watch for this too
     if (intendToSteer == 0)VBusSendData.buf[2] = 252;
     VBusSendData.buf[3] = 255;
     VBusSendData.buf[4] = 255;
@@ -356,11 +362,31 @@ void VBus_Receive()
         if (Brand == 2)
         {
           //**Current Wheel Angle & Valve State**
-          if (VBusReceiveData.id == 0x0CACAA08)
+          if (VBusReceiveData.id == 0x18ff1daa) // was 0x0CACAA08)
           {        
                 estCurve = ((VBusReceiveData.buf[1] << 8) + VBusReceiveData.buf[0]);  // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve 
                 steeringValveReady = (VBusReceiveData.buf[2]); 
-          } 
+          }
+
+          if (VBusReceiveData.id == 0x18ffbaaa)   //**case IH Engage Message**  
+          {
+              if ((VBusReceiveData.buf[0]) == 1)
+              {
+                  Time = millis();
+                  digitalWrite(engageLED, HIGH);
+                  engageCAN = 1;
+                  relayTime = ((millis() + 1000));
+              }
+          }
+
+          if (VBusReceiveData.id == 0x18FE4523)
+          {
+              KBUSRearHitch = (VBusReceiveData.buf[0]);
+              pressureReading = KBUSRearHitch;
+              if (steerConfig.PressureSensor == 1 && KBUSRearHitch < steerConfig.PulseCountMax) workCAN = 1;
+              else workCAN = 0;
+          }
+
   
         }//End Brand == 2 
 
@@ -570,9 +596,10 @@ void K_Receive()
       //CaseIH info from /buched Emmanuel
       if (Brand == 2)
       {
-          if (KBusReceiveData.id == 0x14FF7706)   //**case IH Engage Message**  
+          // we found Engage and hitch on V-Bus on Case Trimble
+          if (KBusReceiveData.id == 0x18ffbaaa)   //**case IH Engage Message**  
           {
-            if ((KBusReceiveData.buf[0])== 130 && (KBusReceiveData.buf[1])== 1)
+            if ((KBusReceiveData.buf[0])== 1)
             {   
               Time = millis();
               digitalWrite(engageLED,HIGH); 

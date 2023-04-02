@@ -18,6 +18,8 @@
 //            - Add CaseIH/New Holland engage from CAN options
 //05.03.2023  - Add GPS to ISOBUS option
 //            - Add RVC BNO08x option and remove CMPS14 option
+// 02.04.2023 - Lans - substitute Lindner for Case Trimble (experimental)
+// 
 
 // GPS forwarding mode: (Serial Bynav etc)
 // - GPS to Serial3, Forward to AgIO via UDP
