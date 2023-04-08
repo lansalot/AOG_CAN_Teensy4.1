@@ -493,7 +493,7 @@ void VBus_Receive()
         }//End Show Data
 
     }//End if message 
-    else {
+    else { // just in case
         VBUSSend = false;
     }
 }//End Receive V-Bus Void
@@ -581,7 +581,7 @@ void ISO_Receive()
         }//End Show Data
   
     }
-    else {
+    else { // just in case
         ISOBUSSend = false;
     }
 }
@@ -703,8 +703,8 @@ void K_Receive()
         }//End Show Data
    
     }
-    else {
-            KBUSSend = false;
+    else { // just in case
+        KBUSSend = false;
     }
 }
 

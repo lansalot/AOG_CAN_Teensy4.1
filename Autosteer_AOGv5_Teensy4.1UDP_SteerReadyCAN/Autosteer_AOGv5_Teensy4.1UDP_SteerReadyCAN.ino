@@ -180,7 +180,7 @@ boolean workCAN = 0;            //Variable for Workswitch from CAN
 uint8_t ISORearHitch = 250;     //Variable for hitch height from ISOBUS (0-250 *0.4 = 0-100%)
 uint8_t KBUSRearHitch = 250;    //Variable for hitch height from KBUS (0-250 *0.4 = 0-100%) - CaseIH tractor bus
 boolean Service = 0;            //Variable for Danfoss Service Tool Mode
-boolean ShowCANData = 1;        //Variable for Showing CAN Data
+boolean ShowCANData = 0;        //Variable for Showing CAN Data
 
 boolean goDown = false, endDown = false , bitState = false, bitStateOld = false;  //CAN Hitch Control
 byte hydLift = 0;
@@ -607,6 +607,20 @@ uint8_t Direction;
     if (currentTime - lastTime >= LOOP_TIME)
     {
 
+        // Sample CAN data:
+        if (ShowCANData == 99) {
+            UDP_CANBusData[4] = 2; // V-Bus
+            UDP_CANBusData[5] = 3 + 6; // Length (pre-amble, plus length)
+            UDP_CANBusData[6] = 2;
+            UDP_CANBusData[7] = 3;
+            UDP_CANBusData[8] = 99;
+
+            Udp.beginPacket(ipDestination, 9999);
+            Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+            Udp.endPacket();
+        }
+        // sample ends
+
       lastTime = currentTime;
      
       //reset debounce
@@ -827,15 +841,32 @@ uint8_t Direction;
     //delay(1); 
 
     //--CAN--Start--
+
       VBus_Receive();
-      if (VBUSSend) {
+      if (VBUSSend && ShowCANData) {
           Udp.beginPacket(ipDestination, 9999);
           Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
           Udp.endPacket();
           Serial.println("Sending VBUS status packet");
+          VBUSSend = false;
       }
       ISO_Receive();
+      if (ISOBUSSend && ShowCANData) {
+          Udp.beginPacket(ipDestination, 9999);
+          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+          Udp.endPacket();
+          Serial.println("Sending ISOBUS status packet");
+          ISOBUSSend = false;
+      }
       K_Receive();
+      if (KBUSSend && ShowCANData) {
+          Udp.beginPacket(ipDestination, 9999);
+          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+          Udp.endPacket();
+          Serial.println("Sending KBUS status packet");
+          KBUSSend = false;
+      }
+
 
 
 
@@ -949,6 +980,17 @@ void udpSteerRecv(int sizeToRead)
             break;
         }
 
+    }
+    if (udpData[3] == 0xAB) // CANBUS enable diag
+    {
+        if (udpData[5] == 1) {
+            Serial.print("Received signal to enable diagnostics ");
+            ShowCANData = 1;
+        }
+        else {
+            Serial.print("Received signal to disable diagnostics ");
+            ShowCANData = 0;
+        }
     }
     else if (udpData[3] == 0xFE)  //254, Steer data
     {
