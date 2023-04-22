@@ -541,18 +541,20 @@ void ISO_Receive()
           }
       }
 
-      // Assemble CANBUS UDP response
-      UDP_CANBusData[4] = 1; // ISO-Bus
-      UDP_CANBusData[5] = 6 + ISOBusReceiveData.len; // Length + 2 for PGN
-      UDP_CANBusData[6] = ISOBusReceiveData.mb;
-      UDP_CANBusData[7] = ISOBusReceiveData.id; // 4 bytes
-      UDP_CANBusData[11] = ISOBusReceiveData.len;
-      for (uint8_t i = 0; i < ISOBusReceiveData.len; i++)
-      {
-          UDP_CANBusData[i + 12] = ISOBusReceiveData.buf[i];
-      }
-      UDP_CANBusData[7 + ISOBusReceiveData.len] = PGN;
         if (ShowCANData == 1){
+            // Assemble CANBUS UDP response   SHOULDN'T WASTE TIME DOING THIS IF NOT ShowCANData
+            UDP_CANBusData[4] = 1; // ISO-Bus
+            UDP_CANBusData[5] = 6 + ISOBusReceiveData.len; // Length + 2 for PGN
+            UDP_CANBusData[6] = ISOBusReceiveData.mb;
+            UDP_CANBusData[7] = ISOBusReceiveData.id; // 4 bytes
+            UDP_CANBusData[11] = ISOBusReceiveData.len;
+            for (uint8_t i = 0; i < ISOBusReceiveData.len; i++)
+            {
+                UDP_CANBusData[i + 12] = ISOBusReceiveData.buf[i];
+            }
+            UDP_CANBusData[7 + ISOBusReceiveData.len] = PGN;
+
+
             Serial.print(Time);
             Serial.print(", ISO-Bus"); 
             Serial.print(", MB: "); Serial.print(ISOBusReceiveData.mb);

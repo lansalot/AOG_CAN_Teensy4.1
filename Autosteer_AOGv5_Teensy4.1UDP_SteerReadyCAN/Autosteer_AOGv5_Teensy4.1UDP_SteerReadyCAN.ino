@@ -606,9 +606,8 @@ uint8_t Direction;
     //--Main Timed Loop----------------------------------   
     if (currentTime - lastTime >= LOOP_TIME)
     {
-
         // Sample CAN data:
-        if (ShowCANData == 99) {
+        if (ShowCANData) {
             UDP_CANBusData[4] = 2; // V-Bus
             UDP_CANBusData[5] = 3 + 6; // Length (pre-amble, plus length)
             UDP_CANBusData[6] = 2;
@@ -981,7 +980,26 @@ void udpSteerRecv(int sizeToRead)
         }
 
     }
-    if (udpData[3] == 0xAB) // CANBUS enable diag
+    else if (udpData[3] == 0xAB) // query CANBUS machinery brand
+    {
+        Brand = EEPROM.read(70);
+        UDP_CANBusData[3] = 0xAD; // change response code
+        UDP_CANBusData[4] = 1; // Length
+        UDP_CANBusData[5] = Brand;
+        //Serial.print("Was asked to report brand - responded ");
+        //Serial.println(Brand);
+        int16_t CKUDP = 0;
+        for (uint8_t i = 2; i < UDP_CANBusData[4] + 5; i++)
+        {
+            CKUDP = (CKUDP + UDP_CANBusData[i]);
+        }
+        UDP_CANBusData[UDP_CANBusData[4] + 5] = CKUDP;
+        Udp.beginPacket(ipDestination, 9999);
+        Udp.write(UDP_CANBusData, UDP_CANBusData[4] + 6);
+        Udp.endPacket();
+        UDP_CANBusData[3] = 0xAB; // and put it back
+    }
+    else if (udpData[3] == 0xAC) // CANBUS enable diag
     {
         if (udpData[5] == 1) {
             Serial.print("Received signal to enable diagnostics ");
