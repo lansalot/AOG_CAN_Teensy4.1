@@ -8,6 +8,8 @@
 //  5 = FendtOne - Same as Fendt but 500kbs K-Bus.
 //  6 = Lindner (F0/240 Navagation Controller, 13/19 Steering Controller)
 //  7 = AgOpenGPS - Remote CAN/PWM module (1C/28 Navagation Controller, 13/19 Steering Controller)
+//  8 = John Deere ATU200
+
 
 //---Start Teensy CANBus Ports and Claim Addresses - If needed 
 
@@ -51,14 +53,19 @@ if (Brand == 6){
   V_Bus.setFIFOFilter(0, 0x0CACF013, EXT);  //Lindner Curve Data & Valve State Message
   CANBUS_ModuleID = 0xF0;
   }
-if (Brand == 7){
-  V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //AgOpenGPS Curve Data & Valve State Message
-  V_Bus.setFIFOFilter(1, 0x19EF1C13, EXT);  //AgOpenGPS error message
-  CANBUS_ModuleID = 0x1C;
-  }   
+if (Brand == 7) {
+    V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //AgOpenGPS Curve Data & Valve State Message
+    V_Bus.setFIFOFilter(1, 0x19EF1C13, EXT);  //AgOpenGPS error message
+    CANBUS_ModuleID = 0x1C;
+}
+if (Brand == 8) {
+    V_Bus.setFIFOFilter(0, 0x18FFFB13, EXT);  //JD ATU200 Curve Data & Valve State Message
+    V_Bus.setFIFOFilter(1, 0x19EF1C13, EXT);  //JD ATU200 error message
+    CANBUS_ModuleID = 0x1C;
+}
   
 // Claim V_Bus Address 
-if (Brand >= 0 && Brand <= 7){
+if (Brand >= 0 && Brand <= 8){
   CAN_message_t msgV;
   if (Brand == 0) msgV.id = 0x18EEFF1E;       //Claas
   else if (Brand == 1) msgV.id = 0x18EEFF1C;  //Massey, Valtra, ETC
@@ -68,6 +75,7 @@ if (Brand >= 0 && Brand <= 7){
   else if (Brand == 5) msgV.id = 0x18EEFF2C;  //FendtONE
   else if (Brand == 6) msgV.id = 0x18EEFFF0;  //Linder
   else if (Brand == 7) msgV.id = 0x18EEFF1C;  //AgOpenGPS
+  else if (Brand == 8) msgV.id = 0x18EEFF13;  //JD ATU200
   msgV.flags.extended = true;
   msgV.len = 8;
   msgV.buf[0] = 0x00;
@@ -87,7 +95,7 @@ delay(500);
   ISO_Bus.setBaudRate(250000);
   ISO_Bus.enableFIFO();
 
-if (Brand >= 0 && Brand <= 7){
+if (Brand >= 0 && Brand <= 8){
   CAN_message_t msgISO;
   if (Brand == 0) msgISO.id = 0x18EEFF1E;       //Claas
   else if (Brand == 1) msgISO.id = 0x18EEFF1C;  //Massey, Valtra, ETC
@@ -97,6 +105,7 @@ if (Brand >= 0 && Brand <= 7){
   else if (Brand == 5) msgISO.id = 0x18EEFF2C;  //FendtOne
   else if (Brand == 6) msgISO.id = 0x18EEFFF0;  //Linder
   else if (Brand == 7) msgISO.id = 0x18EEFF1C;  //AgOpenGPS
+  else if (Brand == 8) msgISO.id = 0x18EEFF1C;  //JD ATU200
   msgISO.flags.extended = true;
   msgISO.len = 8;
   msgISO.buf[0] = 0x00;
@@ -139,137 +148,137 @@ if (Brand == 2){
 
 void VBus_Send(){
     CAN_message_t VBusSendData;
-if (Brand == 0){
-    VBusSendData.id = 0x0CAD131E;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 0;
-    VBusSendData.buf[4] = 0;
-    VBusSendData.buf[5] = 0;
-    VBusSendData.buf[6] = 0;
-    VBusSendData.buf[7] = 0;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 1){
-    VBusSendData.id = 0x0CAD131C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 2){
-    VBusSendData.id = 0x0CAD08AA;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 3){
-    FendtSetCurve = setCurve - 32128;
-    VBusSendData.id = 0x0CEFF02C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 6;
-    VBusSendData.buf[0] = 5;
-    VBusSendData.buf[1] = 9;
-    VBusSendData.buf[3] = 10;
-    if (intendToSteer == 1){  
-      VBusSendData.buf[2] = 3;
-      VBusSendData.buf[4] = highByte(FendtSetCurve);
-      VBusSendData.buf[5] = lowByte(FendtSetCurve);
+    if (Brand == 0){
+        VBusSendData.id = 0x0CAD131E;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 0;
+        VBusSendData.buf[4] = 0;
+        VBusSendData.buf[5] = 0;
+        VBusSendData.buf[6] = 0;
+        VBusSendData.buf[7] = 0;
+        V_Bus.write(VBusSendData);
     }
-    else{
-      VBusSendData.buf[2] = 2;
-      VBusSendData.buf[4] = 0;
-      VBusSendData.buf[5] = 0; 
+    else if (Brand == 1){
+        VBusSendData.id = 0x0CAD131C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
     }
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 4){
-    VBusSendData.id = 0x0CAD13AB;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 5){
-    FendtSetCurve = setCurve - 32128;
-    VBusSendData.id = 0x0CEFF02C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 6;
-    VBusSendData.buf[0] = 5;
-    VBusSendData.buf[1] = 9;
-    VBusSendData.buf[3] = 10;
-    if (intendToSteer == 1){  
-      VBusSendData.buf[2] = 3;
-      VBusSendData.buf[4] = highByte(FendtSetCurve);
-      VBusSendData.buf[5] = lowByte(FendtSetCurve);
+    else if (Brand == 2){
+        VBusSendData.id = 0x0CAD08AA;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
     }
-    else{
-      VBusSendData.buf[2] = 2;
-      VBusSendData.buf[4] = 0;
-      VBusSendData.buf[5] = 0; 
+    else if (Brand == 3){
+        FendtSetCurve = setCurve - 32128;
+        VBusSendData.id = 0x0CEFF02C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 6;
+        VBusSendData.buf[0] = 5;
+        VBusSendData.buf[1] = 9;
+        VBusSendData.buf[3] = 10;
+        if (intendToSteer == 1){  
+          VBusSendData.buf[2] = 3;
+          VBusSendData.buf[4] = highByte(FendtSetCurve);
+          VBusSendData.buf[5] = lowByte(FendtSetCurve);
+        }
+        else{
+          VBusSendData.buf[2] = 2;
+          VBusSendData.buf[4] = 0;
+          VBusSendData.buf[5] = 0; 
+        }
+        V_Bus.write(VBusSendData);
     }
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 6){
-    VBusSendData.id = 0x0CAD13F0;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 7){
-    VBusSendData.id = 0x0CAD131C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    int16_t sp = (int16_t)(steerAngleSetPoint*100);
-    VBusSendData.buf[0] = (uint8_t)sp;
-    VBusSendData.buf[1] = sp >> 8;
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 0;
-    VBusSendData.buf[4] = 0;
-    VBusSendData.buf[5] = 0;
-    VBusSendData.buf[6] = 0;
-    VBusSendData.buf[7] = 0;
-    V_Bus.write(VBusSendData);
-}
+    else if (Brand == 4){
+        VBusSendData.id = 0x0CAD13AB;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 5){
+        FendtSetCurve = setCurve - 32128;
+        VBusSendData.id = 0x0CEFF02C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 6;
+        VBusSendData.buf[0] = 5;
+        VBusSendData.buf[1] = 9;
+        VBusSendData.buf[3] = 10;
+        if (intendToSteer == 1){  
+          VBusSendData.buf[2] = 3;
+          VBusSendData.buf[4] = highByte(FendtSetCurve);
+          VBusSendData.buf[5] = lowByte(FendtSetCurve);
+        }
+        else{
+          VBusSendData.buf[2] = 2;
+          VBusSendData.buf[4] = 0;
+          VBusSendData.buf[5] = 0; 
+        }
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 6){
+        VBusSendData.id = 0x0CAD13F0;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 7){
+        VBusSendData.id = 0x0CAD131C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        int16_t sp = (int16_t)(steerAngleSetPoint*100);
+        VBusSendData.buf[0] = (uint8_t)sp;
+        VBusSendData.buf[1] = sp >> 8;
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 0;
+        VBusSendData.buf[4] = 0;
+        VBusSendData.buf[5] = 0;
+        VBusSendData.buf[6] = 0;
+        VBusSendData.buf[7] = 0;
+        V_Bus.write(VBusSendData);
+    }
 }
 
 //---Receive V_Bus message

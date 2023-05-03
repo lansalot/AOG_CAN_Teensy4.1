@@ -515,6 +515,7 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
       else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
       else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
       else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
+      else if (Brand == 8) Serial.println("Brand = John Deere ATU200 (Set Via Service Tool)");
       else Serial.println("No Tractor Brand Set, Set Via Service Tool");
 
       Serial.println("\r\nGPS Mode:");
