@@ -11,126 +11,142 @@
 
 //---Start Teensy CANBus Ports and Claim Addresses - If needed 
 
+void DisableVBUSFilters(void) {
+    V_Bus.disableFIFO();
+}
+void DisableKBUSFilters(void) {
+    K_Bus.disableFIFO();
+}
+void EnableVBusFilters(void) {
+    V_Bus.enableFIFO();
+    V_Bus.setFIFOFilter(REJECT_ALL);
+    if (Brand == 0) {
+        V_Bus.setFIFOFilter(0, 0x0CAC1E13, EXT);  //Claas Curve Data & Valve State Message
+        V_Bus.setFIFOFilter(1, 0x18EF1CD2, EXT);  //Claas Engage Message
+        V_Bus.setFIFOFilter(2, 0x1CFFE6D2, EXT);  //Claas Work Message (CEBIS Screen MR Models)
+        CANBUS_ModuleID = 0x1E;
+    }
+    if (Brand == 1) {
+        V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //Valtra Curve Data & Valve State Message
+        V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message
+        CANBUS_ModuleID = 0x1C;
+    }
+    if (Brand == 2) {
+        V_Bus.setFIFOFilter(0, 0x0CACAA08, EXT);  //CaseIH Curve Data & Valve State Message
+        V_Bus.setFIFOUserFilter(1, 0x0CEFAA08, 0x0CEF08AA, 0x0000FF00, EXT);
+        CANBUS_ModuleID = 0xAA;
+    }
+    if (Brand == 3) {
+        V_Bus.setFIFOFilter(0, 0x0CEF2CF0, EXT);  //Fendt Curve Data & Valve State Message
+        CANBUS_ModuleID = 0x2C;
+    }
+    if (Brand == 4) {
+        V_Bus.setFIFOFilter(0, 0x0CACAB13, EXT);  //JCB Curve Data & Valve State Message
+        V_Bus.setFIFOFilter(1, 0x18EFAB27, EXT);  //JCB engage message
+        CANBUS_ModuleID = 0xAB;
+    }
+    if (Brand == 5) {
+        V_Bus.setFIFOFilter(0, 0x0CEF2CF0, EXT);  //FendtONE Curve Data & Valve State Message
+        CANBUS_ModuleID = 0x2C;
+    }
+    if (Brand == 6) {
+        V_Bus.setFIFOFilter(0, 0x0CACF013, EXT);  //Lindner Curve Data & Valve State Message
+        CANBUS_ModuleID = 0xF0;
+    }
+    if (Brand == 7) {
+        V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //AgOpenGPS Curve Data & Valve State Message
+        V_Bus.setFIFOFilter(1, 0x19EF1C13, EXT);  //AgOpenGPS error message
+        CANBUS_ModuleID = 0x1C;
+    }
+}
+
+void EnableKBusFilters() {
+    K_Bus.enableFIFO();
+    K_Bus.setFIFOFilter(REJECT_ALL);
+    //Put filters into here to let them through (All blocked by above line)
+    if (Brand == 3) {
+        K_Bus.setFIFOFilter(0, 0x613, STD);  //Fendt Arm Rest Buttons
+    }
+    if (Brand == 5) {
+        K_Bus.setFIFOFilter(0, 0xCFFD899, EXT);  //FendtOne Engage
+    }
+    if (Brand == 2) {
+        K_Bus.setFIFOFilter(0, 0x14FF7706, EXT);  //CaseIH Engage Message
+        K_Bus.setFIFOFilter(1, 0x18FE4523, EXT);  //CaseIH Rear Hitch Infomation
+    }
+}
+
+
 void CAN_setup (void) {
+    //V_Bus is CAN-3 and is the Steering BUS
+    V_Bus.begin();
+    V_Bus.setBaudRate(250000);
 
-//V_Bus is CAN-3 and is the Steering BUS
-  V_Bus.begin();
-  V_Bus.setBaudRate(250000);
-  V_Bus.enableFIFO();
-  V_Bus.setFIFOFilter(REJECT_ALL);
-if (Brand == 0){
-  V_Bus.setFIFOFilter(0, 0x0CAC1E13, EXT);  //Claas Curve Data & Valve State Message
-  V_Bus.setFIFOFilter(1, 0x18EF1CD2, EXT);  //Claas Engage Message
-  V_Bus.setFIFOFilter(2, 0x1CFFE6D2, EXT);  //Claas Work Message (CEBIS Screen MR Models)
-  CANBUS_ModuleID = 0x1E;
-  }
-if (Brand == 1){
-  V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //Valtra Curve Data & Valve State Message
-  V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message
-  CANBUS_ModuleID = 0x1C;
-  }  
-if (Brand == 2){
-  V_Bus.setFIFOFilter(0, 0x0CACAA08, EXT);  //CaseIH Curve Data & Valve State Message
-  V_Bus.setFIFOUserFilter(1, 0x0CEFAA08, 0x0CEF08AA, 0x0000FF00, EXT);
-  CANBUS_ModuleID = 0xAA;
-  }   
-if (Brand == 3){
-  V_Bus.setFIFOFilter(0, 0x0CEF2CF0, EXT);  //Fendt Curve Data & Valve State Message
-  CANBUS_ModuleID = 0x2C;
-  }   
-if (Brand == 4){
-  V_Bus.setFIFOFilter(0, 0x0CACAB13, EXT);  //JCB Curve Data & Valve State Message
-  V_Bus.setFIFOFilter(1, 0x18EFAB27, EXT);  //JCB engage message
-  CANBUS_ModuleID = 0xAB;
-  }
-if (Brand == 5){
-  V_Bus.setFIFOFilter(0, 0x0CEF2CF0, EXT);  //FendtONE Curve Data & Valve State Message
-  CANBUS_ModuleID = 0x2C;
-  }   
-if (Brand == 6){
-  V_Bus.setFIFOFilter(0, 0x0CACF013, EXT);  //Lindner Curve Data & Valve State Message
-  CANBUS_ModuleID = 0xF0;
-  }
-if (Brand == 7){
-  V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //AgOpenGPS Curve Data & Valve State Message
-  V_Bus.setFIFOFilter(1, 0x19EF1C13, EXT);  //AgOpenGPS error message
-  CANBUS_ModuleID = 0x1C;
-  }   
+    EnableVBusFilters();
+
+    // Claim V_Bus Address 
+    if (Brand >= 0 && Brand <= 7){
+      CAN_message_t msgV;
+      if (Brand == 0) msgV.id = 0x18EEFF1E;       //Claas
+      else if (Brand == 1) msgV.id = 0x18EEFF1C;  //Massey, Valtra, ETC
+      else if (Brand == 2) msgV.id = 0x18EEFFAA;  //Case, Hew Holland
+      else if (Brand == 3) msgV.id = 0x18EEFF2C;  //Fendt
+      else if (Brand == 4) msgV.id = 0x18EEFFAB;  //JCB
+      else if (Brand == 5) msgV.id = 0x18EEFF2C;  //FendtONE
+      else if (Brand == 6) msgV.id = 0x18EEFFF0;  //Linder
+      else if (Brand == 7) msgV.id = 0x18EEFF1C;  //AgOpenGPS
+      msgV.flags.extended = true;
+      msgV.len = 8;
+      msgV.buf[0] = 0x00;
+      msgV.buf[1] = 0x00;
+      msgV.buf[2] = 0xC0;
+      msgV.buf[3] = 0x0C;
+      msgV.buf[4] = 0x00;
+      msgV.buf[5] = 0x17;
+      msgV.buf[6] = 0x02;
+      msgV.buf[7] = 0x20;
+      V_Bus.write(msgV);
+    }
+    delay(500);
+
+    //ISO_Bus is CAN-2 
+    ISO_Bus.begin();
+    ISO_Bus.setBaudRate(250000);
+    ISO_Bus.enableFIFO();
+
+    if (Brand >= 0 && Brand <= 7){
+      CAN_message_t msgISO;
+      if (Brand == 0) msgISO.id = 0x18EEFF1E;       //Claas
+      else if (Brand == 1) msgISO.id = 0x18EEFF1C;  //Massey, Valtra, ETC
+      else if (Brand == 2) msgISO.id = 0x18EEFFAA;  //Case, Hew Holland
+      else if (Brand == 3) msgISO.id = 0x18EEFF2C;  //Fendt
+      else if (Brand == 4) msgISO.id = 0x18EEFFAB;  //JCB
+      else if (Brand == 5) msgISO.id = 0x18EEFF2C;  //FendtOne
+      else if (Brand == 6) msgISO.id = 0x18EEFFF0;  //Linder
+      else if (Brand == 7) msgISO.id = 0x18EEFF1C;  //AgOpenGPS
+      msgISO.flags.extended = true;
+      msgISO.len = 8;
+      msgISO.buf[0] = 0x00;
+      msgISO.buf[1] = 0x00;
+      msgISO.buf[2] = 0xC0;
+      msgISO.buf[3] = 0x0C;
+      msgISO.buf[4] = 0x00;
+      msgISO.buf[5] = 0x17;
+      msgISO.buf[6] = 0x02;
+      msgISO.buf[7] = 0x20;
+      ISO_Bus.write(msgISO);
+    }
+
+    delay (500); 
+
+    //K_Bus is CAN-1 and is the Main Tractor Bus
+    K_Bus.begin();
+    if (Brand == 5) K_Bus.setBaudRate(500000);
+        else K_Bus.setBaudRate(250000);
+
+    EnableKBusFilters();
   
-// Claim V_Bus Address 
-if (Brand >= 0 && Brand <= 7){
-  CAN_message_t msgV;
-  if (Brand == 0) msgV.id = 0x18EEFF1E;       //Claas
-  else if (Brand == 1) msgV.id = 0x18EEFF1C;  //Massey, Valtra, ETC
-  else if (Brand == 2) msgV.id = 0x18EEFFAA;  //Case, Hew Holland
-  else if (Brand == 3) msgV.id = 0x18EEFF2C;  //Fendt
-  else if (Brand == 4) msgV.id = 0x18EEFFAB;  //JCB
-  else if (Brand == 5) msgV.id = 0x18EEFF2C;  //FendtONE
-  else if (Brand == 6) msgV.id = 0x18EEFFF0;  //Linder
-  else if (Brand == 7) msgV.id = 0x18EEFF1C;  //AgOpenGPS
-  msgV.flags.extended = true;
-  msgV.len = 8;
-  msgV.buf[0] = 0x00;
-  msgV.buf[1] = 0x00;
-  msgV.buf[2] = 0xC0;
-  msgV.buf[3] = 0x0C;
-  msgV.buf[4] = 0x00;
-  msgV.buf[5] = 0x17;
-  msgV.buf[6] = 0x02;
-  msgV.buf[7] = 0x20;
-  V_Bus.write(msgV);
-}
-delay(500);
-
-//ISO_Bus is CAN-2 
-  ISO_Bus.begin();
-  ISO_Bus.setBaudRate(250000);
-  ISO_Bus.enableFIFO();
-
-if (Brand >= 0 && Brand <= 7){
-  CAN_message_t msgISO;
-  if (Brand == 0) msgISO.id = 0x18EEFF1E;       //Claas
-  else if (Brand == 1) msgISO.id = 0x18EEFF1C;  //Massey, Valtra, ETC
-  else if (Brand == 2) msgISO.id = 0x18EEFFAA;  //Case, Hew Holland
-  else if (Brand == 3) msgISO.id = 0x18EEFF2C;  //Fendt
-  else if (Brand == 4) msgISO.id = 0x18EEFFAB;  //JCB
-  else if (Brand == 5) msgISO.id = 0x18EEFF2C;  //FendtOne
-  else if (Brand == 6) msgISO.id = 0x18EEFFF0;  //Linder
-  else if (Brand == 7) msgISO.id = 0x18EEFF1C;  //AgOpenGPS
-  msgISO.flags.extended = true;
-  msgISO.len = 8;
-  msgISO.buf[0] = 0x00;
-  msgISO.buf[1] = 0x00;
-  msgISO.buf[2] = 0xC0;
-  msgISO.buf[3] = 0x0C;
-  msgISO.buf[4] = 0x00;
-  msgISO.buf[5] = 0x17;
-  msgISO.buf[6] = 0x02;
-  msgISO.buf[7] = 0x20;
-  ISO_Bus.write(msgISO);
-}
-
-delay (500); 
-
-//K_Bus is CAN-1 and is the Main Tractor Bus
-  K_Bus.begin();
-  if (Brand == 5) K_Bus.setBaudRate(500000);
-  else K_Bus.setBaudRate(250000);
-  K_Bus.enableFIFO();
-  K_Bus.setFIFOFilter(REJECT_ALL);
-//Put filters into here to let them through (All blocked by above line)
-if (Brand == 3){
-  K_Bus.setFIFOFilter(0, 0x613, STD);  //Fendt Arm Rest Buttons
-  } 
-if (Brand == 5){
-  K_Bus.setFIFOFilter(0, 0xCFFD899, EXT);  //FendtOne Engage
-  }
-if (Brand == 2){
-  K_Bus.setFIFOFilter(0, 0x14FF7706, EXT);  //CaseIH Engage Message
-  K_Bus.setFIFOFilter(1, 0x18FE4523, EXT);  //CaseIH Rear Hitch Infomation
-  } 
-  
-  delay (300); 
+    delay (300); 
 
 } //End CAN SETUP
 
@@ -139,137 +155,137 @@ if (Brand == 2){
 
 void VBus_Send(){
     CAN_message_t VBusSendData;
-if (Brand == 0){
-    VBusSendData.id = 0x0CAD131E;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 0;
-    VBusSendData.buf[4] = 0;
-    VBusSendData.buf[5] = 0;
-    VBusSendData.buf[6] = 0;
-    VBusSendData.buf[7] = 0;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 1){
-    VBusSendData.id = 0x0CAD131C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 2){
-    VBusSendData.id = 0x0CAD08AA;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 3){
-    FendtSetCurve = setCurve - 32128;
-    VBusSendData.id = 0x0CEFF02C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 6;
-    VBusSendData.buf[0] = 5;
-    VBusSendData.buf[1] = 9;
-    VBusSendData.buf[3] = 10;
-    if (intendToSteer == 1){  
-      VBusSendData.buf[2] = 3;
-      VBusSendData.buf[4] = highByte(FendtSetCurve);
-      VBusSendData.buf[5] = lowByte(FendtSetCurve);
+    if (Brand == 0){
+        VBusSendData.id = 0x0CAD131E;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 0;
+        VBusSendData.buf[4] = 0;
+        VBusSendData.buf[5] = 0;
+        VBusSendData.buf[6] = 0;
+        VBusSendData.buf[7] = 0;
+        V_Bus.write(VBusSendData);
     }
-    else{
-      VBusSendData.buf[2] = 2;
-      VBusSendData.buf[4] = 0;
-      VBusSendData.buf[5] = 0; 
+    else if (Brand == 1){
+        VBusSendData.id = 0x0CAD131C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
     }
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 4){
-    VBusSendData.id = 0x0CAD13AB;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 5){
-    FendtSetCurve = setCurve - 32128;
-    VBusSendData.id = 0x0CEFF02C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 6;
-    VBusSendData.buf[0] = 5;
-    VBusSendData.buf[1] = 9;
-    VBusSendData.buf[3] = 10;
-    if (intendToSteer == 1){  
-      VBusSendData.buf[2] = 3;
-      VBusSendData.buf[4] = highByte(FendtSetCurve);
-      VBusSendData.buf[5] = lowByte(FendtSetCurve);
+    else if (Brand == 2){
+        VBusSendData.id = 0x0CAD08AA;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
     }
-    else{
-      VBusSendData.buf[2] = 2;
-      VBusSendData.buf[4] = 0;
-      VBusSendData.buf[5] = 0; 
+    else if (Brand == 3){
+        FendtSetCurve = setCurve - 32128;
+        VBusSendData.id = 0x0CEFF02C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 6;
+        VBusSendData.buf[0] = 5;
+        VBusSendData.buf[1] = 9;
+        VBusSendData.buf[3] = 10;
+        if (intendToSteer == 1){  
+          VBusSendData.buf[2] = 3;
+          VBusSendData.buf[4] = highByte(FendtSetCurve);
+          VBusSendData.buf[5] = lowByte(FendtSetCurve);
+        }
+        else{
+          VBusSendData.buf[2] = 2;
+          VBusSendData.buf[4] = 0;
+          VBusSendData.buf[5] = 0; 
+        }
+        V_Bus.write(VBusSendData);
     }
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 6){
-    VBusSendData.id = 0x0CAD13F0;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    VBusSendData.buf[0] = lowByte(setCurve);
-    VBusSendData.buf[1] = highByte(setCurve);
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 255;
-    VBusSendData.buf[4] = 255;
-    VBusSendData.buf[5] = 255;
-    VBusSendData.buf[6] = 255;
-    VBusSendData.buf[7] = 255;
-    V_Bus.write(VBusSendData);
-}
-else if (Brand == 7){
-    VBusSendData.id = 0x0CAD131C;
-    VBusSendData.flags.extended = true;
-    VBusSendData.len = 8;
-    int16_t sp = (int16_t)(steerAngleSetPoint*100);
-    VBusSendData.buf[0] = (uint8_t)sp;
-    VBusSendData.buf[1] = sp >> 8;
-    if (intendToSteer == 1)VBusSendData.buf[2] = 253;
-    if (intendToSteer == 0)VBusSendData.buf[2] = 252;
-    VBusSendData.buf[3] = 0;
-    VBusSendData.buf[4] = 0;
-    VBusSendData.buf[5] = 0;
-    VBusSendData.buf[6] = 0;
-    VBusSendData.buf[7] = 0;
-    V_Bus.write(VBusSendData);
-}
+    else if (Brand == 4){
+        VBusSendData.id = 0x0CAD13AB;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 5){
+        FendtSetCurve = setCurve - 32128;
+        VBusSendData.id = 0x0CEFF02C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 6;
+        VBusSendData.buf[0] = 5;
+        VBusSendData.buf[1] = 9;
+        VBusSendData.buf[3] = 10;
+        if (intendToSteer == 1){  
+          VBusSendData.buf[2] = 3;
+          VBusSendData.buf[4] = highByte(FendtSetCurve);
+          VBusSendData.buf[5] = lowByte(FendtSetCurve);
+        }
+        else{
+          VBusSendData.buf[2] = 2;
+          VBusSendData.buf[4] = 0;
+          VBusSendData.buf[5] = 0; 
+        }
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 6){
+        VBusSendData.id = 0x0CAD13F0;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        VBusSendData.buf[0] = lowByte(setCurve);
+        VBusSendData.buf[1] = highByte(setCurve);
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 255;
+        VBusSendData.buf[4] = 255;
+        VBusSendData.buf[5] = 255;
+        VBusSendData.buf[6] = 255;
+        VBusSendData.buf[7] = 255;
+        V_Bus.write(VBusSendData);
+    }
+    else if (Brand == 7){
+        VBusSendData.id = 0x0CAD131C;
+        VBusSendData.flags.extended = true;
+        VBusSendData.len = 8;
+        int16_t sp = (int16_t)(steerAngleSetPoint*100);
+        VBusSendData.buf[0] = (uint8_t)sp;
+        VBusSendData.buf[1] = sp >> 8;
+        if (intendToSteer == 1)VBusSendData.buf[2] = 253;
+        if (intendToSteer == 0)VBusSendData.buf[2] = 252;
+        VBusSendData.buf[3] = 0;
+        VBusSendData.buf[4] = 0;
+        VBusSendData.buf[5] = 0;
+        VBusSendData.buf[6] = 0;
+        VBusSendData.buf[7] = 0;
+        V_Bus.write(VBusSendData);
+    }
 }
 
 //---Receive V_Bus message
@@ -277,7 +293,7 @@ void VBus_Receive()
 {
     CAN_message_t VBusReceiveData;
     if (V_Bus.read(VBusReceiveData)) {
-        VBUSSend = true;
+        //VBUSSend = true;
         if (Brand == 0)
         {
           //**Current Wheel Angle & Valve State**
@@ -464,19 +480,23 @@ void VBus_Receive()
         
         }//End Brand == 7 
 
-        // Assemble CANBUS UDP response
-        UDP_CANBusData[4] = 2; // V-Bus
-        UDP_CANBusData[5] = 6 + VBusReceiveData.len; // Length
-        UDP_CANBusData[6] = VBusReceiveData.mb;
-        UDP_CANBusData[7] = VBusReceiveData.id; // 4 bytes
-        UDP_CANBusData[11] = VBusReceiveData.len;
-        for (uint8_t i = 0; i < VBusReceiveData.len; i++)
-        {
-            UDP_CANBusData[i + 12] = VBusReceiveData.buf[i];
-        }
+
+        //UDP_CANBusData[4] = 2; // V-Bus
+        //UDP_CANBusData[5] = 6 + VBusReceiveData.len; // Length
+        //UDP_CANBusData[6] = VBusReceiveData.mb;
+        //UDP_CANBusData[7] = VBusReceiveData.id; // 4 bytes
+        //UDP_CANBusData[11] = VBusReceiveData.len;
+        //for (uint8_t i = 0; i < VBusReceiveData.len; i++)
+        //{
+        //    UDP_CANBusData[i + 12] = VBusReceiveData.buf[i];
+        //}
 
         if (ShowCANData == 1)
         {
+            // Assemble CANBUS UDP response
+            memcpy(barr, &VBusReceiveData, sizeof(VBusReceiveData));
+            PGNtoUDP(UDP_VBUS, UDPCANStandardPGNEcho, sizeof(VBusReceiveData), barr);
+
             Serial.print(Time);
             Serial.print(", V-Bus");
             Serial.print(", MB: "); Serial.print(VBusReceiveData.mb);
@@ -492,10 +512,8 @@ void VBus_Receive()
             Serial.println("");
         }//End Show Data
 
-    }//End if message 
-    else { // just in case
-        VBUSSend = false;
-    }
+    } //End if message 
+
 }//End Receive V-Bus Void
 
 //---Receive ISO_Bus message
@@ -504,56 +522,45 @@ void ISO_Receive()
     CAN_message_t ISOBusReceiveData;
     if (ISO_Bus.read(ISOBusReceiveData)) 
     { 
-        ISOBUSSend = true;
-      Time = millis();
-      //Put code here to sort a message out from ISO-Bus if needed 
+        //ISOBUSSend = true;
+        Time = millis();
   
-      unsigned long PGN;
-      byte priority;
-      byte srcaddr;
-      byte destaddr;
+        unsigned long PGN;
+        byte priority;
+        byte srcaddr;
+        byte destaddr;
 
-      j1939_decode(ISOBusReceiveData.id, &PGN, &priority, &srcaddr, &destaddr);
+        j1939_decode(ISOBusReceiveData.id, &PGN, &priority, &srcaddr, &destaddr);
 
-      //**Work Message**
-      if (PGN == 65093) //Rear hitch data
-      {
-        ISORearHitch = (ISOBusReceiveData.buf[0]); 
-        if(Brand != 7) pressureReading = ISORearHitch;
-        if (steerConfig.PressureSensor == 1 && ISORearHitch < steerConfig.PulseCountMax && Brand != 7) workCAN = 1; 
-        else workCAN = 0; 
-      }
+        //**Work Message**
+        if (PGN == 65093) //Rear hitch data
+        {
+            ISORearHitch = (ISOBusReceiveData.buf[0]); 
+            if(Brand != 7) pressureReading = ISORearHitch;
+            if (steerConfig.PressureSensor == 1 && ISORearHitch < steerConfig.PulseCountMax && Brand != 7) workCAN = 1; 
+            else workCAN = 0; 
+        }
   
-      if (Brand == 3)
-      {
-          if (ISOBusReceiveData.id == 0x18EF2CF0)   //**Fendt Engage Message**  
-          {
+        if (Brand == 3)
+        {
+            if (ISOBusReceiveData.id == 0x18EF2CF0)   //**Fendt Engage Message**  
+            {
             if ((ISOBusReceiveData.buf[0])== 0x0F && (ISOBusReceiveData.buf[1])== 0x60 && (ISOBusReceiveData.buf[2])== 0x01){   
-#ifdef isAllInOneBoard
-              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
-              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-#else
-              digitalWrite(engageLED,HIGH); 
-#endif
-              engageCAN = 1;
-              relayTime = ((millis() + 1000));
+                #ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+                #else
+                digitalWrite(engageLED,HIGH); 
+                #endif
+                engageCAN = 1;
+                relayTime = ((millis() + 1000));
             }
-          }
-      }
+            }
+        }
 
         if (ShowCANData == 1){
-            // Assemble CANBUS UDP response   SHOULDN'T WASTE TIME DOING THIS IF NOT ShowCANData
-            UDP_CANBusData[4] = 1; // ISO-Bus
-            UDP_CANBusData[5] = 6 + ISOBusReceiveData.len; // Length + 2 for PGN
-            UDP_CANBusData[6] = ISOBusReceiveData.mb;
-            UDP_CANBusData[7] = ISOBusReceiveData.id; // 4 bytes
-            UDP_CANBusData[11] = ISOBusReceiveData.len;
-            for (uint8_t i = 0; i < ISOBusReceiveData.len; i++)
-            {
-                UDP_CANBusData[i + 12] = ISOBusReceiveData.buf[i];
-            }
-            UDP_CANBusData[7 + ISOBusReceiveData.len] = PGN;
-
+            memcpy(barr, &ISOBusReceiveData, sizeof(ISOBusReceiveData));
+            PGNtoUDP(UDP_ISOBUS, UDPCANStandardPGNEcho, sizeof(ISOBusReceiveData), barr);
 
             Serial.print(Time);
             Serial.print(", ISO-Bus"); 
@@ -568,7 +575,7 @@ void ISO_Receive()
             Serial.print(", DATA: ");
             for ( uint8_t i = 0; i < 8; i++ ) 
             {
-              Serial.print(ISOBusReceiveData.buf[i]); Serial.print(", ");
+                Serial.print(ISOBusReceiveData.buf[i]); Serial.print(", ");
             }
   
             if (PGN == 44032) Serial.print("= Curvature Data");
@@ -580,11 +587,8 @@ void ISO_Receive()
             else if (PGN == 129029) Serial.print("= GPS Info (GGA)");
 
             Serial.println("");
-        }//End Show Data
+        } //End Show Data
   
-    }
-    else { // just in case
-        ISOBUSSend = false;
     }
 }
 
@@ -593,102 +597,94 @@ void K_Receive()
 {
     CAN_message_t KBusReceiveData;
     if (K_Bus.read(KBusReceiveData)) { 
-        KBUSSend = true;
-      //Put code here to sort a message out from K-Bus if needed 
   
-      if (Brand == 3)
-      {
+        if (Brand == 3)
+        {
         if (KBusReceiveData.buf[0]==0x15 && KBusReceiveData.buf[2]==0x06 && KBusReceiveData.buf[3]==0xCA)
         {
        
-          if(KBusReceiveData.buf[1]==0x8A && KBusReceiveData.buf[4]==0x80) steeringValveReady = 80;      // Fendt Auto Steer Active Pressed So CAN Not Ready
+            if(KBusReceiveData.buf[1]==0x8A && KBusReceiveData.buf[4]==0x80) steeringValveReady = 80;      // Fendt Auto Steer Active Pressed So CAN Not Ready
       
-          if (KBusReceiveData.buf[1]==0x88 && KBusReceiveData.buf[4]==0x80) // Fendt Auto Steer Go   
-          {
-              Time = millis();
-#ifdef isAllInOneBoard
-              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
-              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-#else
-              digitalWrite(engageLED,HIGH); 
-#endif
-              engageCAN = 1;
-              relayTime = ((millis() + 1000));
-          }
+            if (KBusReceiveData.buf[1]==0x88 && KBusReceiveData.buf[4]==0x80) // Fendt Auto Steer Go   
+            {
+                Time = millis();
+    #ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+    #else
+                digitalWrite(engageLED,HIGH); 
+    #endif
+                engageCAN = 1;
+                relayTime = ((millis() + 1000));
+            }
         }                                                             
-      }
+        }
 
-      if (Brand == 5)
-      {
-          if (KBusReceiveData.id == 0xCFFD899)   //**FendtOne Engage Message**  
-          {
+        if (Brand == 5)
+        {
+            if (KBusReceiveData.id == 0xCFFD899)   //**FendtOne Engage Message**  
+            {
             if ((KBusReceiveData.buf[3])== 0xF6)
             {   
-              Time = millis();
-#ifdef isAllInOneBoard
-              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
-              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-#else
-              digitalWrite(engageLED,HIGH); 
-#endif
-              engageCAN = 1;
-              relayTime = ((millis() + 1000));
+                Time = millis();
+    #ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+    #else
+                digitalWrite(engageLED,HIGH); 
+    #endif
+                engageCAN = 1;
+                relayTime = ((millis() + 1000));
             }
-          }
-      }
+            }
+        }
 
-      //CaseIH info from /buched Emmanuel
-      if (Brand == 2)
-      {
-          if (KBusReceiveData.id == 0x14FF7706)   //**case IH Engage Message**  
-          {
+        //CaseIH info from /buched Emmanuel
+        if (Brand == 2)
+        {
+            if (KBusReceiveData.id == 0x14FF7706)   //**case IH Engage Message**  
+            {
             if ((KBusReceiveData.buf[0])== 130 && (KBusReceiveData.buf[1])== 1)
             {   
-              Time = millis();
-#ifdef isAllInOneBoard
-              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
-              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-#else
-              digitalWrite(engageLED,HIGH); 
-#endif
-              engageCAN = 1;
-              relayTime = ((millis() + 1000));
+                Time = millis();
+    #ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+    #else
+                digitalWrite(engageLED,HIGH); 
+    #endif
+                engageCAN = 1;
+                relayTime = ((millis() + 1000));
             }
 
             if ((KBusReceiveData.buf[0])== 178 && (KBusReceiveData.buf[1])== 4)
             {   
-              Time = millis();
-#ifdef isAllInOneBoard
-              digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
-              digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-#else
-              digitalWrite(engageLED,HIGH); 
-#endif
-              engageCAN = 1;
-              relayTime = ((millis() + 1000));
+                Time = millis();
+    #ifdef isAllInOneBoard
+                digitalWrite(AUTOSTEER_ACTIVE_LED, HIGH);
+                digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+    #else
+                digitalWrite(engageLED,HIGH); 
+    #endif
+                engageCAN = 1;
+                relayTime = ((millis() + 1000));
             }
-          }
+            }
 
-          if (KBusReceiveData.id == 0x18FE4523)
-          {
+            if (KBusReceiveData.id == 0x18FE4523)
+            {
             KBUSRearHitch = (KBusReceiveData.buf[0]); 
             pressureReading = KBUSRearHitch;
             if (steerConfig.PressureSensor == 1 && KBUSRearHitch < steerConfig.PulseCountMax) workCAN = 1; 
             else workCAN = 0; 
-          }
-      }
+            }
+        }
 
-      UDP_CANBusData[4] = 0; // K-Bus
-      UDP_CANBusData[5] = 6 + KBusReceiveData.len; // Length + 2 for PGN
-      UDP_CANBusData[6] = KBusReceiveData.mb;
-      UDP_CANBusData[7] = KBusReceiveData.id; // 4 bytes
-      UDP_CANBusData[11] = KBusReceiveData.len;
-      for (uint8_t i = 0; i < KBusReceiveData.len; i++)
-      {
-          UDP_CANBusData[i + 12] = KBusReceiveData.buf[i];
-      }
         if (ShowCANData == 1)
         {
+            memcpy(barr, &KBusReceiveData, sizeof(KBusReceiveData));
+            PGNtoUDP(UDP_KBUS, UDPCANStandardPGNEcho, sizeof(KBusReceiveData), barr);
+
             Serial.print(Time);
             Serial.print(", K-Bus"); 
             Serial.print(", MB: "); Serial.print(KBusReceiveData.mb);
@@ -698,15 +694,11 @@ void K_Receive()
             Serial.print(", DATA: ");
             for ( uint8_t i = 0; i < 8; i++ ) 
             {
-              Serial.print(KBusReceiveData.buf[i]); Serial.print(", ");
+                Serial.print(KBusReceiveData.buf[i]); Serial.print(", ");
             }
   
             Serial.println("");
-        }//End Show Data
-   
-    }
-    else { // just in case
-        KBUSSend = false;
+        } //End Show Data
     }
 }
 

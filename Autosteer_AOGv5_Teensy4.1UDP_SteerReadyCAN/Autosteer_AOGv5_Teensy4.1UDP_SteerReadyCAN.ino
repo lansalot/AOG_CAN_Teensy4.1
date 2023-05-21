@@ -110,6 +110,7 @@ String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
   #include "zNMEAParser.h"
   #include "BNO08x_AOG.h"
 
+#pragma region Variables
 /* A parser is declared with 3 handlers at most */
 NMEAParser<3> parser;
 
@@ -117,36 +118,36 @@ NMEAParser<3> parser;
 extern "C" uint32_t set_arm_clock(uint32_t frequency); // required prototype
 extern float tempmonGetTemp(void);
 elapsedMillis tempChecker;
-  
+
 //----Teensy 4.1 Ethernet--Start---------------------
-  #include <NativeEthernet.h>
-  #include <NativeEthernetUdp.h>
+#include <NativeEthernet.h>
+#include <NativeEthernetUdp.h>
 
-    struct ConfigIP {
-        uint8_t ipOne = 192;
-        uint8_t ipTwo = 168;
-        uint8_t ipThree = 1;
-    };  ConfigIP networkAddress;   //3 bytes
-  
-  // Module IP Address / Port
-  IPAddress ip = { 0,0,0,126 };
-  unsigned int localPort = 8888;  
-  unsigned int NtripPort = 2233;    
-  
-  // AOG IP Address / Port
-  static uint8_t ipDestination[] = {0,0,0,255};
-  unsigned int AOGPort = 9999;
+struct ConfigIP {
+    uint8_t ipOne = 192;
+    uint8_t ipTwo = 168;
+    uint8_t ipThree = 1;
+};  ConfigIP networkAddress;   //3 bytes
 
-  //MAC address
-  byte mac[] = { 0x00,0x00,0x56,0x00,0x00,0x7E };
-  
-  // Buffer For Receiving UDP Data
-  byte udpData[128];    // Incomming Buffer
-  byte NtripData[512];   
+// Module IP Address / Port
+IPAddress ip = { 0,0,0,126 };
+unsigned int localPort = 8888;
+unsigned int NtripPort = 2233;
 
-  // An EthernetUDP instance to let us send and receive packets over UDP
-  EthernetUDP Udp;
-  EthernetUDP NtripUdp;         
+// AOG IP Address / Port
+static uint8_t ipDestination[] = { 0,0,0,255 };
+unsigned int AOGPort = 9999;
+
+//MAC address
+byte mac[] = { 0x00,0x00,0x56,0x00,0x00,0x7E };
+
+// Buffer For Receiving UDP Data
+byte udpData[128];    // Incomming Buffer
+byte NtripData[512];
+
+// An EthernetUDP instance to let us send and receive packets over UDP
+EthernetUDP Udp;
+EthernetUDP NtripUdp;
 
 //----Teensy 4.1 Ethernet--End---------------------
 
@@ -158,15 +159,15 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_256> ISO_Bus;  //ISO Bus
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> V_Bus;    //Steering Valve Bus
 
 #ifdef isAllInOneBoard
-	#define Power_on_LED 5            //Red
-	#define Ethernet_Active_LED 6     //Green
-	#define GPSRED_LED 9              //Red (Flashing = No RTK)
-	#define GPSGREEN_LED 10           //Green (ON = RTK)
-	#define AUTOSTEER_STANDBY_LED 11  //Red
-	#define AUTOSTEER_ACTIVE_LED 12   //Green
+#define Power_on_LED 5            //Red
+#define Ethernet_Active_LED 6     //Green
+#define GPSRED_LED 9              //Red (Flashing = No RTK)
+#define GPSGREEN_LED 10           //Green (ON = RTK)
+#define AUTOSTEER_STANDBY_LED 11  //Red
+#define AUTOSTEER_ACTIVE_LED 12   //Green
 #else
-	#define ledPin 5        //Option for LED, CAN Valve Ready To Steer.
-	#define engageLED 24    //Option for LED, to see if Engage message is recived.
+#define ledPin 5        //Option for LED, CAN Valve Ready To Steer.
+#define engageLED 24    //Option for LED, to see if Engage message is recived.
 #endif
 
 uint8_t Brand = 1;              //Variable to set brand via serial monitor.
@@ -182,12 +183,12 @@ uint8_t KBUSRearHitch = 250;    //Variable for hitch height from KBUS (0-250 *0.
 boolean Service = 0;            //Variable for Danfoss Service Tool Mode
 boolean ShowCANData = 0;        //Variable for Showing CAN Data
 
-boolean goDown = false, endDown = false , bitState = false, bitStateOld = false;  //CAN Hitch Control
+boolean goDown = false, endDown = false, bitState = false, bitStateOld = false;  //CAN Hitch Control
 byte hydLift = 0;
-byte goPress[8]        = {0x15, 0x20, 0x06, 0xCA, 0x80, 0x01, 0x00, 0x00} ;    //  press big go
-byte goLift[8]         = {0x15, 0x20, 0x06, 0xCA, 0x00, 0x02, 0x00, 0x00} ;    //  lift big go
-byte endPress[8]       = {0x15, 0x21, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00} ;    //  press big end
-byte endLift[8]        = {0x15, 0x21, 0x06, 0xCA, 0x00, 0x04, 0x00, 0x00} ;    //  lift big end
+byte goPress[8] = { 0x15, 0x20, 0x06, 0xCA, 0x80, 0x01, 0x00, 0x00 };    //  press big go
+byte goLift[8] = { 0x15, 0x20, 0x06, 0xCA, 0x00, 0x02, 0x00, 0x00 };    //  lift big go
+byte endPress[8] = { 0x15, 0x21, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00 };    //  press big end
+byte endLift[8] = { 0x15, 0x21, 0x06, 0xCA, 0x00, 0x04, 0x00, 0x00 };    //  lift big end
 //byte goPress[8]        = {0x15, 0x22, 0x06, 0xCA, 0x80, 0x01, 0x00, 0x00} ;    //  press little go
 //byte goLift[8]         = {0x15, 0x22, 0x06, 0xCA, 0x00, 0x02, 0x00, 0x00} ;    //  lift little go
 //byte endPress[8]       = {0x15, 0x23, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00} ;    //  press little end
@@ -206,9 +207,9 @@ int16_t FendtSetCurve = 0;       //Variable for Set Curve to CAN CAN (Fendt Only
 
 
 //WAS Calibration
-float inputWAS[] =          { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};  //Input WAS do not adjust
-float outputWAS[] =         { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0};
-float outputWASFendt[] =    { -60.00, -54.0, -48.0, -42.3, -36.1, -30.1, -23.4, -17.1, -11.0, -5.5, 0, 5.5, 11.0, 17.1, 23.4, 30.1, 36.1, 42.3, 48.0, 54.0, 60.0};  //Fendt 720 SCR, CPD = 80
+float inputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0 };  //Input WAS do not adjust
+float outputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0 };
+float outputWASFendt[] = { -60.00, -54.0, -48.0, -42.3, -36.1, -30.1, -23.4, -17.1, -11.0, -5.5, 0, 5.5, 11.0, 17.1, 23.4, 30.1, 36.1, 42.3, 48.0, 54.0, 60.0 };  //Fendt 720 SCR, CPD = 80
 
 boolean sendCAN = 0;              //Send CAN message every 2nd cycle (If needed ?)
 uint8_t steeringValveReady = 0;   //Variable for Steering Valve State from CAN
@@ -217,173 +218,196 @@ boolean intendToSteer = 0;        //Do We Intend to Steer?
 uint8_t Direction;
 
 //----Teensy 4.1 CANBus--End-----------------------
-    
-  //Main loop time variables in microseconds  
-  const uint16_t LOOP_TIME = 40;  //25Hz      
-  uint32_t lastTime = LOOP_TIME;
-  uint32_t currentTime = LOOP_TIME;
 
-  //IMU data                            
-  const uint16_t GYRO_LOOP_TIME = 20;   //50Hz IMU 
-  uint32_t lastGyroTime = GYRO_LOOP_TIME;
-  uint32_t IMU_currentTime;
+//Main loop time variables in microseconds  
+const uint16_t LOOP_TIME = 40;  //25Hz      
+uint32_t lastTime = LOOP_TIME;
+uint32_t currentTime = LOOP_TIME;
 
-  bool blink;
+//IMU data                            
+const uint16_t GYRO_LOOP_TIME = 20;   //50Hz IMU 
+uint32_t lastGyroTime = GYRO_LOOP_TIME;
+uint32_t IMU_currentTime;
 
-  //IMU data
-  float roll = 0;
-  float pitch = 0;
-  float yaw = 0;
+bool blink;
 
-  //GPS Data
-  bool sendGPStoISOBUS = true;
-  double pivotLat, pivotLon, fixHeading, pivotAltitude;
-  float utcTime, geoidalGGA;
-  uint8_t fixTypeGGA, satsGGA;
-  float hdopGGA, rtkAgeGGA;
+//IMU data
+float roll = 0;
+float pitch = 0;
+float yaw = 0;
 
-  uint8_t N2K_129029_Data[48];
+//GPS Data
+bool sendGPStoISOBUS = true;
+double pivotLat, pivotLon, fixHeading, pivotAltitude;
+float utcTime, geoidalGGA;
+uint8_t fixTypeGGA, satsGGA;
+float hdopGGA, rtkAgeGGA;
 
-  //Swap BNO08x roll & pitch? - Note this is now sent from AgOpen
+uint8_t N2K_129029_Data[48];
 
-  //Roomba Vac mode for BNO085 and data
-  #include "BNO_RVC.h"
-  BNO_rvc rvc = BNO_rvc();
-  BNO_rvcData bnoData;
-  elapsedMillis bnoTimer;
-  bool bnoTrigger = false;
-  HardwareSerial* SerialIMU = &Serial5;   //IMU BNO-085
+//Swap BNO08x roll & pitch? - Note this is now sent from AgOpen
 
-  // booleans to see what mode BNO08x
-  bool useBNO08x = false;
-  bool useBNO08xRVC = false;
+//Roomba Vac mode for BNO085 and data
+#include "BNO_RVC.h"
+BNO_rvc rvc = BNO_rvc();
+BNO_rvcData bnoData;
+elapsedMillis bnoTimer;
+bool bnoTrigger = false;
+HardwareSerial* SerialIMU = &Serial5;   //IMU BNO-085
 
-  // BNO08x address variables to check where it is
-  const uint8_t bno08xAddresses[] = {0x4A,0x4B};
-  const int16_t nrBNO08xAdresses = sizeof(bno08xAddresses)/sizeof(bno08xAddresses[0]);
-  uint8_t bno08xAddress;
-  BNO080 bno08x;
+// booleans to see what mode BNO08x
+bool useBNO08x = false;
+bool useBNO08xRVC = false;
 
-  const uint16_t WATCHDOG_THRESHOLD = 100;
-  const uint16_t WATCHDOG_FORCE_VALUE = WATCHDOG_THRESHOLD + 2; // Should be greater than WATCHDOG_THRESHOLD
-  uint8_t watchdogTimer = WATCHDOG_FORCE_VALUE;
-  
-  //Parsing PGN
-  bool isPGNFound = false, isHeaderFound = false;
-  uint8_t pgn = 0, dataLength = 0, idx = 0;
-  int16_t tempHeader = 0;
+// BNO08x address variables to check where it is
+const uint8_t bno08xAddresses[] = { 0x4A,0x4B };
+const int16_t nrBNO08xAdresses = sizeof(bno08xAddresses) / sizeof(bno08xAddresses[0]);
+uint8_t bno08xAddress;
+BNO080 bno08x;
 
-  //show life in AgIO - v5.5
-  uint8_t helloAgIO[] = {0x80,0x81, 0x7f, 0xC7, 1, 0, 0x47 };
-  uint8_t helloCounter=0;
+const uint16_t WATCHDOG_THRESHOLD = 100;
+const uint16_t WATCHDOG_FORCE_VALUE = WATCHDOG_THRESHOLD + 2; // Should be greater than WATCHDOG_THRESHOLD
+uint8_t watchdogTimer = WATCHDOG_FORCE_VALUE;
 
-  CAN_message_t CAN_Status_To_UDP;
-  
-  //Heart beat hello AgIO - v5.6
-  uint8_t helloFromIMU[] = { 128, 129, 121, 121, 5, 0, 0, 0, 0, 0, 71 };
-  uint8_t helloFromAutoSteer[] = { 128, 129, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
-  int16_t helloSteerPosition = 0;
-    
-  //fromAutoSteerData FD 253 - ActualSteerAngle*100 -5,6, SwitchByte-7, pwmDisplay-8
-  uint8_t AOG[] = {0x80,0x81, 0x7f, 0xFD, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
-  int16_t AOGSize = sizeof(AOG);
+//Parsing PGN
+bool isPGNFound = false, isHeaderFound = false;
+uint8_t pgn = 0, dataLength = 0, idx = 0;
+int16_t tempHeader = 0;
 
-  //fromAutoSteerData FD 250 - sensor values etc
-  uint8_t PGN_250[] = {0x80,0x81, 0x7f, 0xFA, 8, 0, 0, 0, 0, 0,0,0,99, 0xCC }; // piggyback the CANBUSDirection into data[8], 99 default as "no canbus"
-  int8_t PGN_250_Size = sizeof(PGN_250) - 1;
-  uint8_t aog2Count = 0;
-  uint8_t pressureReading;
-  uint8_t currentReading;
+//show life in AgIO - v5.5
+uint8_t helloAgIO[] = { 0x80,0x81, 0x7f, 0xC7, 1, 0, 0x47 };
+uint8_t helloCounter = 0;
 
-  //EEPROM
-  int16_t EEread = 0;
+CAN_message_t CAN_Status_To_UDP;
 
-  //Relays
-  bool isRelayActiveHigh = true;
-  uint8_t relay = 0, relayHi = 0, uTurn = 0;
-  uint8_t tram = 0;
-    
-  //Switches
-  uint8_t remoteSwitch = 0, workSwitch = 0, steerSwitch = 1, switchByte = 0;
+//Heart beat hello AgIO - v5.6
+uint8_t helloFromIMU[] = { 128, 129, 121, 121, 5, 0, 0, 0, 0, 0, 71 };
+uint8_t helloFromAutoSteer[] = { 128, 129, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
+int16_t helloSteerPosition = 0;
 
-  //On Off
-  uint8_t guidanceStatus = 0;
-  uint8_t previousStatus = 0;
+//fromAutoSteerData FD 253 - ActualSteerAngle*100 -5,6, SwitchByte-7, pwmDisplay-8
+uint8_t AOG[] = { 0x80,0x81, 0x7f, 0xFD, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
+int16_t AOGSize = sizeof(AOG);
 
-  //speed sent as *10
-  float gpsSpeed = 0;
-  
-  //steering variables
-  float steerAngleActual = 0;
-  float steerAngleSetPoint = 0; //the desired angle from AgOpen
-  int16_t steeringPosition = 0; //from steering sensor
-  float steerAngleError = 0; //setpoint - actual
-  
-  //pwm variables
-  int16_t pwmDrive = 0, pwmDisplay = 0;
-  float pValue = 0;
-  float errorAbs = 0;
-  float highLowPerDeg = 0; 
+//fromAutoSteerData FD 250 - sensor values etc
+uint8_t PGN_250[] = { 0x80,0x81, 0x7f, 0xFA, 8, 0, 0, 0, 0, 0,0,0,99, 0xCC }; // piggyback the CANBUSDirection into data[8], 99 default as "no canbus"
+int8_t PGN_250_Size = sizeof(PGN_250) - 1;
+uint8_t aog2Count = 0;
+uint8_t pressureReading;
+uint8_t currentReading;
 
-  //Steer switch button  
-  uint8_t currentState = 1, reading, previous = 0;
-  uint8_t pulseCount = 0; // Steering Wheel Encoder
-  bool encEnable = false; //debounce flag
-  uint8_t thisEnc = 0, lastEnc = 0;
+//EEPROM
+int16_t EEread = 0;
 
-   //Variables for settings  
-   struct Storage 
-   {
-      uint8_t Kp = 15;  //proportional gain
-      uint8_t lowPWM = 5;  //band of no action
-      int16_t wasOffset = 0;
-      uint8_t minPWM = 1;
-      uint8_t highPWM = 250;//max PWM value
-      float steerSensorCounts = 80;        
-      float AckermanFix = 1;     //sent as percent
-   };  Storage steerSettings;  //11 bytes
+//Relays
+bool isRelayActiveHigh = true;
+uint8_t relay = 0, relayHi = 0, uTurn = 0;
+uint8_t tram = 0;
 
-   //Variables for settings - 0 is false  
-   struct Setup 
-   {
-      uint8_t InvertWAS = 0;
-      uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
-      uint8_t MotorDriveDirection = 0;
-      uint8_t SingleInputWAS = 1;
-      uint8_t CytronDriver = 1;
-      uint8_t SteerSwitch = 0;  //1 if switch selected
-      uint8_t SteerButton = 0;  //1 if button selected
-      uint8_t ShaftEncoder = 0;
-      uint8_t PressureSensor = 0;
-      uint8_t CurrentSensor = 0;
-      uint8_t PulseCountMax = 5; 
-      uint8_t IsDanfoss = 0; 
-      uint8_t IsUseY_Axis = 1;     //0 = use X Axis, 1 = use Y axis
-   };  Setup steerConfig;          //9 bytes
+//Switches
+uint8_t remoteSwitch = 0, workSwitch = 0, steerSwitch = 1, switchByte = 0;
 
-    //Variables for config - 0 is false - Machine Config
-  struct Config 
-  {
+//On Off
+uint8_t guidanceStatus = 0;
+uint8_t previousStatus = 0;
+
+//speed sent as *10
+float gpsSpeed = 0;
+
+//steering variables
+float steerAngleActual = 0;
+float steerAngleSetPoint = 0; //the desired angle from AgOpen
+int16_t steeringPosition = 0; //from steering sensor
+float steerAngleError = 0; //setpoint - actual
+
+//pwm variables
+int16_t pwmDrive = 0, pwmDisplay = 0;
+float pValue = 0;
+float errorAbs = 0;
+float highLowPerDeg = 0;
+
+//Steer switch button  
+uint8_t currentState = 1, reading, previous = 0;
+uint8_t pulseCount = 0; // Steering Wheel Encoder
+bool encEnable = false; //debounce flag
+uint8_t thisEnc = 0, lastEnc = 0;
+
+//Variables for settings  
+struct Storage
+{
+    uint8_t Kp = 15;  //proportional gain
+    uint8_t lowPWM = 5;  //band of no action
+    int16_t wasOffset = 0;
+    uint8_t minPWM = 1;
+    uint8_t highPWM = 250;//max PWM value
+    float steerSensorCounts = 80;
+    float AckermanFix = 1;     //sent as percent
+};  Storage steerSettings;  //11 bytes
+
+//Variables for settings - 0 is false  
+struct Setup
+{
+    uint8_t InvertWAS = 0;
+    uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
+    uint8_t MotorDriveDirection = 0;
+    uint8_t SingleInputWAS = 1;
+    uint8_t CytronDriver = 1;
+    uint8_t SteerSwitch = 0;  //1 if switch selected
+    uint8_t SteerButton = 0;  //1 if button selected
+    uint8_t ShaftEncoder = 0;
+    uint8_t PressureSensor = 0;
+    uint8_t CurrentSensor = 0;
+    uint8_t PulseCountMax = 5;
+    uint8_t IsDanfoss = 0;
+    uint8_t IsUseY_Axis = 1;     //0 = use X Axis, 1 = use Y axis
+};  Setup steerConfig;          //9 bytes
+
+//Variables for config - 0 is false - Machine Config
+struct Config
+{
     uint8_t raiseTime = 2;
     uint8_t lowerTime = 4;
     uint8_t enableToolLift = 0;
     uint8_t isRelayActiveHigh = 0; //if zero, active low (default)
-  
-  };  Config aogConfig;   //4 bytes
 
-  uint8_t UDP_CANBusData[20];
-  bool VBUSSend, ISOBUSSend, KBUSSend;
+};  Config aogConfig;   //4 bytes
+
+byte UDP_CANBusData[50];
+//bool VBUSSend, ISOBUSSend, KBUSSend;
+bool EchoPGNs = false; // we'll just echo all 3 buses, it should be for a short time
+byte UDPQueryCANBrand = 0xAB;
+byte UDPCANStandardPGNEcho = 0xAE;
+byte barr[sizeof(CAN_message_t)]; // used for packing to PGNtoUDP function
+int UDP_KBUS = 0, UDP_ISOBUS = 1, UDP_VBUS = 2;
+
+#pragma endregion
 
 
+void PGNtoUDP(byte Bus, byte ResponseCode, byte ResLen, byte bytes[])
+{
+    // just pass the whole can_message_t in here and let AOG sort it out?
+    UDP_CANBusData[3] = ResponseCode; // this matches the google sheet to indicate type of response
+    UDP_CANBusData[4] = 4 + sizeof(bytes) + 2; // Length + 2 for Bus + ResponseCode
+    UDP_CANBusData[5] = Bus; // byte
+    for (uint8_t i = 0; i < sizeof(bytes); i++)
+    {
+        UDP_CANBusData[i + 6] = bytes[i];
+    }
+    Serial.print("Sending status stuff to UDP  ");
+    Serial.print("ResponseCode: "); Serial.print(ResponseCode);
+    Serial.print("Bus: "); Serial.print(Bus);
+    // no need for a checksum for our CAN UDP messages
+    Udp.beginPacket(ipDestination, 9999);
+    Udp.write(UDP_CANBusData, UDP_CANBusData[4]);
+    Udp.endPacket();
+}
 //*******************************************************************************
  
   void setup()
   {
-      UDP_CANBusData[0] = 0x80;
-      UDP_CANBusData[1] = 0x81;
-      UDP_CANBusData[2] = 0x7f;
-      UDP_CANBusData[3] = 0xAB;
-      UDP_CANBusData[4] = 2;        // 0 = KBUS, 1 = ISOBUS, 2 = VBUS
+    UDP_CANBusData[0] = 0x80;
+    UDP_CANBusData[1] = 0x81;
+    UDP_CANBusData[2] = 0x7f;
 
     delay(500);                         //Small delay so serial can monitor start up
     set_arm_clock(450000000);           //Set CPU speed to 450mhz
@@ -608,15 +632,8 @@ uint8_t Direction;
     {
         // Sample CAN data:
         if (ShowCANData) {
-            UDP_CANBusData[4] = 2; // V-Bus
-            UDP_CANBusData[5] = 3 + 6; // Length (pre-amble, plus length)
-            UDP_CANBusData[6] = 2;
-            UDP_CANBusData[7] = 3;
-            UDP_CANBusData[8] = 99;
-
-            Udp.beginPacket(ipDestination, 9999);
-            Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-            Udp.endPacket();
+            byte Bytes[] = { 101, 102, 103 };
+            PGNtoUDP(2, 2, sizeof(Bytes), Bytes);
         }
         // sample ends
 
@@ -646,7 +663,7 @@ uint8_t Direction;
       //read all the switches
 
       //CANBus     
-      if (steeringValveReady == 20 || steeringValveReady == 16) 
+      if (steeringValveReady == 20 || steeringValveReady == 16)
       {
 #ifdef isAllInOneBoard
           digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
@@ -842,29 +859,31 @@ uint8_t Direction;
     //--CAN--Start--
 
       VBus_Receive();
-      if (VBUSSend && ShowCANData) {
-          Udp.beginPacket(ipDestination, 9999);
-          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-          Udp.endPacket();
-          Serial.println("Sending VBUS status packet");
-          VBUSSend = false;
-      }
+
+      // below code now integrated in above functions
+      //if (VBUSSend && ShowCANData) {
+      //    Udp.beginPacket(ipDestination, 9999);
+      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+      //    Udp.endPacket();
+      //    Serial.println("Sending VBUS status packet");
+      //    VBUSSend = false;
+      //}
       ISO_Receive();
-      if (ISOBUSSend && ShowCANData) {
-          Udp.beginPacket(ipDestination, 9999);
-          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-          Udp.endPacket();
-          Serial.println("Sending ISOBUS status packet");
-          ISOBUSSend = false;
-      }
+      //if (ISOBUSSend && ShowCANData) {
+      //    Udp.beginPacket(ipDestination, 9999);
+      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+      //    Udp.endPacket();
+      //    Serial.println("Sending ISOBUS status packet");
+      //    ISOBUSSend = false;
+      //}
       K_Receive();
-      if (KBUSSend && ShowCANData) {
-          Udp.beginPacket(ipDestination, 9999);
-          Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-          Udp.endPacket();
-          Serial.println("Sending KBUS status packet");
-          KBUSSend = false;
-      }
+      //if (KBUSSend && ShowCANData) {
+      //    Udp.beginPacket(ipDestination, 9999);
+      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+      //    Udp.endPacket();
+      //    Serial.println("Sending KBUS status packet");
+      //    KBUSSend = false;
+      //}
 
 
 
@@ -978,7 +997,6 @@ void udpSteerRecv(int sizeToRead)
         default:
             break;
         }
-
     }
     else if (udpData[3] == 0xAB) // query CANBUS machinery brand
     {
@@ -986,8 +1004,6 @@ void udpSteerRecv(int sizeToRead)
         UDP_CANBusData[3] = 0xAD; // change response code
         UDP_CANBusData[4] = 1; // Length
         UDP_CANBusData[5] = Brand;
-        //Serial.print("Was asked to report brand - responded ");
-        //Serial.println(Brand);
         int16_t CKUDP = 0;
         for (uint8_t i = 2; i < UDP_CANBusData[4] + 5; i++)
         {
@@ -999,14 +1015,28 @@ void udpSteerRecv(int sizeToRead)
         Udp.endPacket();
         UDP_CANBusData[3] = 0xAB; // and put it back
     }
-    else if (udpData[3] == 0xAC) // CANBUS enable diag
+    else if (udpData[3] == 0xAC) // CANBUS state changes
     {
-        if (udpData[5] == 1) {
+        if (udpData[5] == 0) {
+            Serial.print("Received signal to disable diagnostics ");
+            ShowCANData = 0;
+        }
+        else if (udpData[5] == 1) {
             Serial.print("Received signal to enable diagnostics ");
             ShowCANData = 1;
         }
-        else {
-            Serial.print("Received signal to disable diagnostics ");
+        else if (udpData[5] == 2) {
+            Serial.print("Received signal to disable filters ");
+            DisableVBUSFilters();
+            DisableKBUSFilters();
+            EchoPGNs = true;
+            ShowCANData = 1;
+        }
+        else if (udpData[5] == 3) {
+            Serial.print("Received signal to enable filters ");
+            EnableVBusFilters();
+            EnableKBusFilters();
+            EchoPGNs = false;
             ShowCANData = 0;
         }
     }
