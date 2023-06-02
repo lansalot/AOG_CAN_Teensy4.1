@@ -13,3 +13,9 @@ CAN3-H = Pin 3 Nav controller 40 pin connector X-716 or Pin H Diagnostic connect
 CAN3-L = Pin 13 Nav controller 40 pin connector X-716 or Pin J Diagnostic connector behind seat  
 
 [CaseIH_GPS.pdf](https://github.com/MechanicTony/AOG_CAN_Teensy4.1/files/10528432/CaseIH_GPS.pdf)
+
+
+# NOTE: If you are here for the AllInOne Mods, then you need this zip file from the AIOChanges branch:
+https://codeload.github.com/lansalot/AOG_CAN_Teensy4.1/zip/refs/heads/AIOChanges
+
+## Don't download the usual main zip file
