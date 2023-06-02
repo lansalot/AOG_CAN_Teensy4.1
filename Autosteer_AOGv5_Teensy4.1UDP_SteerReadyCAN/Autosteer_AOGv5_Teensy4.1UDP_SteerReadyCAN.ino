@@ -9,7 +9,7 @@
 //----------------------------------------------------------
 
 // uncomment the following line if you're using the All-In-One-Board
-// #define isAllInOneBoard
+#define isAllInOneBoard
 
 //Tony / @Commonrail Version 05.03.2023
 //30.06.2022  - Ryan / @RGM Added JCB CAN engage message
