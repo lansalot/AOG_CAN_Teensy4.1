@@ -11,13 +11,17 @@
 
 //---Start Teensy CANBus Ports and Claim Addresses - If needed 
 
-void DisableVBUSFilters(void) {
+void DisableVBUSFilters() {
+    Serial.println("Disabled VBUS");
     V_Bus.disableFIFO();
+    //V_Bus.setFIFOFilter(ACCEPT_ALL);
 }
-void DisableKBUSFilters(void) {
+void DisableKBUSFilters() {
+    Serial.println("Disabled KBUS");
     K_Bus.disableFIFO();
+    //K_Bus.setFIFOFilter(ACCEPT_ALL);
 }
-void EnableVBusFilters(void) {
+void EnableVBusFilters() {
     V_Bus.enableFIFO();
     V_Bus.setFIFOFilter(REJECT_ALL);
     if (Brand == 0) {
@@ -494,12 +498,9 @@ void VBus_Receive()
         if (ShowCANData == 1)
         {
             // Assemble CANBUS UDP response
-            memcpy(barr, &VBusReceiveData, sizeof(VBusReceiveData));
-            PGNtoUDP(UDP_VBUS, UDPCANStandardPGNEcho, sizeof(VBusReceiveData), barr);
-
             Serial.print(Time);
             Serial.print(", V-Bus");
-            Serial.print(", MB: "); Serial.print(VBusReceiveData.mb);
+            Serial.print(", MB: "); Serial.print(VBusReceiveData.mb), HEX;
             Serial.print(", ID: 0x"); Serial.print(VBusReceiveData.id, HEX);
             Serial.print(", EXT: "); Serial.print(VBusReceiveData.flags.extended);
             Serial.print(", LEN: "); Serial.print(VBusReceiveData.len);
@@ -507,9 +508,14 @@ void VBus_Receive()
 
             for (uint8_t i = 0; i < VBusReceiveData.len; i++)
             {
-                Serial.print(VBusReceiveData.buf[i]); Serial.print(", ");
+                Serial.print(VBusReceiveData.buf[i], HEX); Serial.print(", ");
             }
             Serial.println("");
+
+            memcpy(barr, &VBusReceiveData, sizeof(VBusReceiveData));
+            PGNtoUDP(UDP_VBUS, UDPCANStandardPGNEcho, sizeof(VBusReceiveData), barr);
+
+
         }//End Show Data
 
     } //End if message 
@@ -559,23 +565,20 @@ void ISO_Receive()
         }
 
         if (ShowCANData == 1){
-            memcpy(barr, &ISOBusReceiveData, sizeof(ISOBusReceiveData));
-            PGNtoUDP(UDP_ISOBUS, UDPCANStandardPGNEcho, sizeof(ISOBusReceiveData), barr);
-
             Serial.print(Time);
             Serial.print(", ISO-Bus"); 
-            Serial.print(", MB: "); Serial.print(ISOBusReceiveData.mb);
+            Serial.print(", MB: "); Serial.print(ISOBusReceiveData.mb, HEX);
             Serial.print(", ID: 0x"); Serial.print(ISOBusReceiveData.id, HEX );
             Serial.print(", PGN: "); Serial.print(PGN);
             Serial.print(", Priority: "); Serial.print(priority);
-            Serial.print(", SA: "); Serial.print(srcaddr);
-            Serial.print(", DA: "); Serial.print(destaddr);
+            Serial.print(", SA: "); Serial.print(srcaddr), HEX;
+            Serial.print(", DA: "); Serial.print(destaddr, HEX);
             Serial.print(", EXT: "); Serial.print(ISOBusReceiveData.flags.extended );
             Serial.print(", LEN: "); Serial.print(ISOBusReceiveData.len);
             Serial.print(", DATA: ");
             for ( uint8_t i = 0; i < 8; i++ ) 
             {
-                Serial.print(ISOBusReceiveData.buf[i]); Serial.print(", ");
+                Serial.print(ISOBusReceiveData.buf[i], HEX); Serial.print(", ");
             }
   
             if (PGN == 44032) Serial.print("= Curvature Data");
@@ -587,6 +590,8 @@ void ISO_Receive()
             else if (PGN == 129029) Serial.print("= GPS Info (GGA)");
 
             Serial.println("");
+            memcpy(barr, &ISOBusReceiveData, sizeof(ISOBusReceiveData));
+            PGNtoUDP(UDP_ISOBUS, UDPCANStandardPGNEcho, sizeof(ISOBusReceiveData), barr);
         } //End Show Data
   
     }
@@ -682,22 +687,24 @@ void K_Receive()
 
         if (ShowCANData == 1)
         {
+            Serial.print(Time);
+            Serial.print(", K-Bus");
+            Serial.print(", MB: "); Serial.print(KBusReceiveData.mb), HEX;
+            Serial.print(", ID: 0x"); Serial.print(KBusReceiveData.id, HEX);
+            Serial.print(", EXT: "); Serial.print(KBusReceiveData.flags.extended);
+            Serial.print(", LEN: "); Serial.print(KBusReceiveData.len);
+            Serial.print(", DATA: ");
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                Serial.print(KBusReceiveData.buf[i], HEX); Serial.print(", ");
+            }
+
+            Serial.println(""); 
+            
             memcpy(barr, &KBusReceiveData, sizeof(KBusReceiveData));
             PGNtoUDP(UDP_KBUS, UDPCANStandardPGNEcho, sizeof(KBusReceiveData), barr);
 
-            Serial.print(Time);
-            Serial.print(", K-Bus"); 
-            Serial.print(", MB: "); Serial.print(KBusReceiveData.mb);
-            Serial.print(", ID: 0x"); Serial.print(KBusReceiveData.id, HEX );
-            Serial.print(", EXT: "); Serial.print(KBusReceiveData.flags.extended );
-            Serial.print(", LEN: "); Serial.print(KBusReceiveData.len);
-            Serial.print(", DATA: ");
-            for ( uint8_t i = 0; i < 8; i++ ) 
-            {
-                Serial.print(KBusReceiveData.buf[i]); Serial.print(", ");
-            }
-  
-            Serial.println("");
+
         } //End Show Data
     }
 }

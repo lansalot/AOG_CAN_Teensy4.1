@@ -61,7 +61,7 @@
 #ifdef isAllInOneBoard
 String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AIO mods)");
 #else
-String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023");
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AW Mods)");
 #endif
   ////////////////// User Settings /////////////////////////  
 
@@ -393,9 +393,9 @@ void PGNtoUDP(byte Bus, byte ResponseCode, byte ResLen, byte bytes[])
     {
         UDP_CANBusData[i + 6] = bytes[i];
     }
-    Serial.print("Sending status stuff to UDP  ");
-    Serial.print("ResponseCode: "); Serial.print(ResponseCode);
-    Serial.print("Bus: "); Serial.print(Bus);
+    Serial.print("Sending status stuff to UDP:  ResponseCode: "); Serial.print(ResponseCode, HEX);
+    Serial.print("  barr length: "); Serial.print(ResLen);
+    Serial.print("  Bus: "); Serial.println(Bus);
     // no need for a checksum for our CAN UDP messages
     Udp.beginPacket(ipDestination, 9999);
     Udp.write(UDP_CANBusData, UDP_CANBusData[4]);
@@ -631,10 +631,10 @@ void PGNtoUDP(byte Bus, byte ResponseCode, byte ResLen, byte bytes[])
     if (currentTime - lastTime >= LOOP_TIME)
     {
         // Sample CAN data:
-        if (ShowCANData) {
-            byte Bytes[] = { 101, 102, 103 };
-            PGNtoUDP(2, 2, sizeof(Bytes), Bytes);
-        }
+        //if (ShowCANData) {
+        //    byte Bytes[] = { 101, 102, 103 };
+        //    PGNtoUDP(2, 2, sizeof(Bytes), Bytes);
+        //}
         // sample ends
 
       lastTime = currentTime;
@@ -1026,18 +1026,16 @@ void udpSteerRecv(int sizeToRead)
             ShowCANData = 1;
         }
         else if (udpData[5] == 2) {
-            Serial.print("Received signal to disable filters ");
+            Serial.println("Received signal to disable filters ");
             DisableVBUSFilters();
             DisableKBUSFilters();
             EchoPGNs = true;
             ShowCANData = 1;
         }
         else if (udpData[5] == 3) {
-            Serial.print("Received signal to enable filters ");
-            EnableVBusFilters();
-            EnableKBusFilters();
-            EchoPGNs = false;
-            ShowCANData = 0;
+            Serial.println("Received signal to enable filters, so rebooting ");
+            delay(1000);
+            SCB_AIRCR = 0x05FA0004; //Teensy Reset
         }
     }
     else if (udpData[3] == 0xFE)  //254, Steer data
