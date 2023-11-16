@@ -1,114 +1,114 @@
-  /*
-   * UDP Autosteer code for Teensy 4.1
-   * For AgOpenGPS and CANBUS Autosteer ready tractors
-   * 4 Feb 2021, Brian Tischler
-   * Like all Arduino code - copied from somewhere else :)
-   * So don't claim it as your own
-   */
+/*
+ * UDP Autosteer code for Teensy 4.1
+ * For AgOpenGPS and CANBUS Autosteer ready tractors
+ * 4 Feb 2021, Brian Tischler
+ * Like all Arduino code - copied from somewhere else :)
+ * So don't claim it as your own
+ */
 
-//----------------------------------------------------------
+ //----------------------------------------------------------
 
-// uncomment the following line if you're using the All-In-One-Board
-//
-//#define isAllInOneBoard
+ // uncomment the following line if you're using the All-In-One-Board
+ //
+ //#define isAllInOneBoard
 
-//Tony / @Commonrail Version 05.03.2023
-//30.06.2022  - Ryan / @RGM Added JCB CAN engage message
-//02.07.2022  - Added Claas headland from Ryan
-//            - Fix up pilot valve output for Ryan Claas wiring mod 
-//31.12.2022  - Add Panda mode & GPS options, set via serial monitor service tool
-//29.01.2023  - Add WAS mapping option to fix wheel angle to turning radius conversion
-//            - Add Danfoss PVED-CL setup options (Claas mods mainly)
-//            - Add CaseIH/New Holland engage from CAN options
-//05.03.2023  - Add GPS to ISOBUS option
-//            - Add RVC BNO08x option and remove CMPS14 option
+ //Tony / @Commonrail Version 05.03.2023
+ //30.06.2022  - Ryan / @RGM Added JCB CAN engage message
+ //02.07.2022  - Added Claas headland from Ryan
+ //            - Fix up pilot valve output for Ryan Claas wiring mod 
+ //31.12.2022  - Add Panda mode & GPS options, set via serial monitor service tool
+ //29.01.2023  - Add WAS mapping option to fix wheel angle to turning radius conversion
+ //            - Add Danfoss PVED-CL setup options (Claas mods mainly)
+ //            - Add CaseIH/New Holland engage from CAN options
+ //05.03.2023  - Add GPS to ISOBUS option
+ //            - Add RVC BNO08x option and remove CMPS14 option
 
-// GPS forwarding mode: (Serial Bynav etc)
-// - GPS to Serial3, Forward to AgIO via UDP
-// - Forward Ntrip from AgIO (Port 2233) to Serial3
+ // GPS forwarding mode: (Serial Bynav etc)
+ // - GPS to Serial3, Forward to AgIO via UDP
+ // - Forward Ntrip from AgIO (Port 2233) to Serial3
 
-// Panda Mode 
-// - GPS to Serial3, Forward to AgIO as Panda via UDP
-// - Forward Ntrip from AgIO (Port 2233) to Serial3
-// - BNO08x Data sent with Panda data
+ // Panda Mode 
+ // - GPS to Serial3, Forward to AgIO as Panda via UDP
+ // - Forward Ntrip from AgIO (Port 2233) to Serial3
+ // - BNO08x Data sent with Panda data
 
-//This CAN setup is for CANBUS based steering controllers as below:
-//Danfoss PVED-CL & PVED-CLS (Claas, JCB, Massey Fergerson, CaseIH, New Holland, Valtra, Deutz, Lindner)
-//Fendt SCR, S4, Gen6, FendtOne Models need Part:ACP0595080 3rd Party Steering Unlock Installed
-//Late model Valtra & Massey with PVED-CC valve (Steering controller in Main Tractor ECU)
-//!!Model is selected via serial monitor service tool!! (One day we will will get a CANBUS setup page in AgOpen)
+ //This CAN setup is for CANBUS based steering controllers as below:
+ //Danfoss PVED-CL & PVED-CLS (Claas, JCB, Massey Fergerson, CaseIH, New Holland, Valtra, Deutz, Lindner)
+ //Fendt SCR, S4, Gen6, FendtOne Models need Part:ACP0595080 3rd Party Steering Unlock Installed
+ //Late model Valtra & Massey with PVED-CC valve (Steering controller in Main Tractor ECU)
+ //!!Model is selected via serial monitor service tool!! (One day we will will get a CANBUS setup page in AgOpen)
 
-//For engage & disengage via CAN or Button on PCB, select "Button" as switch option in AgOpen 
-//For engage via AgOpen tablet & disengage via CAN, select "None" as switch option and make sure "Remote" is on the steering wheel icon
-//For engage & disengage via PCB switch only select "Switch" as switch option
+ //For engage & disengage via CAN or Button on PCB, select "Button" as switch option in AgOpen 
+ //For engage via AgOpen tablet & disengage via CAN, select "None" as switch option and make sure "Remote" is on the steering wheel icon
+ //For engage & disengage via PCB switch only select "Switch" as switch option
 
-//PWM value drives set curve up & down, so you need to set the PWM settings in AgOpen
-//Normal settings P=15, Max=254, Low=5, Min=1 - Note: New version of AgOpen "LowPWM" is removed and "MinPWM" is used as Low for CANBUS setups (MinPWM hardcoded in .ino coded to 1)
-//Some tractors have very fast valves, this smooths out the setpoint from AgOpen
+ //PWM value drives set curve up & down, so you need to set the PWM settings in AgOpen
+ //Normal settings P=15, Max=254, Low=5, Min=1 - Note: New version of AgOpen "LowPWM" is removed and "MinPWM" is used as Low for CANBUS setups (MinPWM hardcoded in .ino coded to 1)
+ //Some tractors have very fast valves, this smooths out the setpoint from AgOpen
 
-//Workswitch can be operated via PCB or CAN (Will need to setup CAN Messages in ISOBUS section)
-//17.09.2021 - If Pressure Sensor selected, Work switch will be operated when hitch is less than pressure setting (0-250 x 0.4 = 0-100%) 
-//             Note: The above is temporary use of unused variable, as one day we will get hitch % added to AgOpen
-//             Note: There is a AgOpenGPS on MechanicTony GitHub with these two labels & picture changed
+ //Workswitch can be operated via PCB or CAN (Will need to setup CAN Messages in ISOBUS section)
+ //17.09.2021 - If Pressure Sensor selected, Work switch will be operated when hitch is less than pressure setting (0-250 x 0.4 = 0-100%) 
+ //             Note: The above is temporary use of unused variable, as one day we will get hitch % added to AgOpen
+ //             Note: There is a AgOpenGPS on MechanicTony GitHub with these two labels & picture changed
 
-//Fendt K-Bus - (Not FendtOne models) Note: This also works with Claas thanks to Ryan
-//Big Go/End is operated via hitch control in AgOpen 
-//Arduino Hitch settings must be enableded and sent to module
-//"Invert Relays" Uses section 1 to trigger hitch (Again temporary)
+ //Fendt K-Bus - (Not FendtOne models) Note: This also works with Claas thanks to Ryan
+ //Big Go/End is operated via hitch control in AgOpen 
+ //Arduino Hitch settings must be enableded and sent to module
+ //"Invert Relays" Uses section 1 to trigger hitch (Again temporary)
 
-//----------------------------------------------------------
+ //----------------------------------------------------------
 
 #ifdef isAllInOneBoard
-String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AIO mods)");
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 19.08.2023 (AIO mods)");
 #else
-String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 05.03.2023 (AW Mods)");
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 16.11.2023 (AW Mods)");
 #endif
-  ////////////////// User Settings /////////////////////////  
+////////////////// User Settings /////////////////////////  
 
-  //How many degrees before decreasing Max PWM
-  #define LOW_HIGH_DEGREES 3.0
+//How many degrees before decreasing Max PWM
+#define LOW_HIGH_DEGREES 3.0
 
-  /*  PWM Frequency -> 
-   *   490hz (default) = 0
-   *   122hz = 1
-   *   3921hz = 2
-   */
-  #define PWM_Frequency 0
-  
-  /////////////////////////////////////////////
+/*  PWM Frequency ->
+ *   490hz (default) = 0
+ *   122hz = 1
+ *   3921hz = 2
+ */
+#define PWM_Frequency 0
 
-  // if not in eeprom, overwrite 
-  #define EEP_Ident 0x5422
+ /////////////////////////////////////////////
 
-  //   ***********  Motor drive connections  **************888
-  //Connect ground only for cytron, Connect Ground and +5v for IBT2
-    
-  //Dir1 for Cytron Dir, Both L and R enable for IBT2
-  #define DIR1_RL_ENABLE  4  //PD4
+ // if not in eeprom, overwrite 
+#define EEP_Ident 0x5422
 
-  //PWM1 for Cytron PWM, Left PWM for IBT2
-  #define PWM1_LPWM  3  //PD3
+//   ***********  Motor drive connections  **************888
+//Connect ground only for cytron, Connect Ground and +5v for IBT2
 
-  //Not Connected for Cytron, Right PWM for IBT2
-  #define PWM2_RPWM  9 //D9
+//Dir1 for Cytron Dir, Both L and R enable for IBT2
+#define DIR1_RL_ENABLE  4  //PD4
 
-  //--------------------------- Switch Input Pins ------------------------
+//PWM1 for Cytron PWM, Left PWM for IBT2
+#define PWM1_LPWM  3  //PD3
+
+//Not Connected for Cytron, Right PWM for IBT2
+#define PWM2_RPWM  9 //D9
+
+//--------------------------- Switch Input Pins ------------------------
 #ifdef isAllInOneBoard
-    #define STEERSW_PIN 32
-    #define WORKSW_PIN 34
-    #define REMOTE_PIN 37
+#define STEERSW_PIN 32
+#define WORKSW_PIN 34
+#define REMOTE_PIN 37
 #else
-    #define STEERSW_PIN 6 //PD6
-    #define WORKSW_PIN 7  //PD7
-    #define REMOTE_PIN 8  //PB0
+#define STEERSW_PIN 6 //PD6
+#define WORKSW_PIN 7  //PD7
+#define REMOTE_PIN 8  //PB0
 #endif
-  #define CONST_180_DIVIDED_BY_PI 57.2957795130823
-  #define RAD_TO_DEG_X_10 572.95779513082320876798154814105
+#define CONST_180_DIVIDED_BY_PI 57.2957795130823
+#define RAD_TO_DEG_X_10 572.95779513082320876798154814105
 
-  #include <Wire.h>
-  #include <EEPROM.h> 
-  #include "zNMEAParser.h"
-  #include "BNO08x_AOG.h"
+#include <Wire.h>
+#include <EEPROM.h> 
+#include "zNMEAParser.h"
+#include "BNO08x_AOG.h"
 
 #pragma region Variables
 /* A parser is declared with 3 handlers at most */
@@ -124,9 +124,9 @@ elapsedMillis tempChecker;
 #include <NativeEthernetUdp.h>
 
 struct ConfigIP {
-    uint8_t ipOne = 192;
-    uint8_t ipTwo = 168;
-    uint8_t ipThree = 1;
+	uint8_t ipOne = 192;
+	uint8_t ipTwo = 168;
+	uint8_t ipThree = 1;
 };  ConfigIP networkAddress;   //3 bytes
 
 // Module IP Address / Port
@@ -173,6 +173,8 @@ FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> V_Bus;    //Steering Valve Bus
 uint8_t Brand = 1;              //Variable to set brand via serial monitor.
 uint8_t gpsMode = 1;            //Variable to set GPS mode via serial monitor.
 uint8_t CANBUS_ModuleID = 0x1C; //Used for the Module CAN ID
+
+bool reverse_MT = 0;
 
 uint32_t Time;                  //Time Arduino has been running
 uint32_t relayTime;             //Time to keep "Button Pressed" from CAN Message
@@ -335,40 +337,40 @@ uint8_t thisEnc = 0, lastEnc = 0;
 //Variables for settings  
 struct Storage
 {
-    uint8_t Kp = 15;  //proportional gain
-    uint8_t lowPWM = 5;  //band of no action
-    int16_t wasOffset = 0;
-    uint8_t minPWM = 1;
-    uint8_t highPWM = 250;//max PWM value
-    float steerSensorCounts = 80;
-    float AckermanFix = 1;     //sent as percent
-};  Storage steerSettings;  //11 bytes
+	uint8_t Kp = 15;  //proportional gain
+	uint8_t lowPWM = 5;  //band of no action
+	int16_t wasOffset = 0;
+	uint8_t minPWM = 1;
+	uint8_t highPWM = 250;//max PWM value
+	float steerSensorCounts = 80;
+	float AckermanFix = 1;     //sent as percent
+};  Storage steerSettings;  // 14 bytes
 
 //Variables for settings - 0 is false  
 struct Setup
 {
-    uint8_t InvertWAS = 0;
-    uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
-    uint8_t MotorDriveDirection = 0;
-    uint8_t SingleInputWAS = 1;
-    uint8_t CytronDriver = 1;
-    uint8_t SteerSwitch = 0;  //1 if switch selected
-    uint8_t SteerButton = 0;  //1 if button selected
-    uint8_t ShaftEncoder = 0;
-    uint8_t PressureSensor = 0;
-    uint8_t CurrentSensor = 0;
-    uint8_t PulseCountMax = 5;
-    uint8_t IsDanfoss = 0;
-    uint8_t IsUseY_Axis = 1;     //0 = use X Axis, 1 = use Y axis
-};  Setup steerConfig;          //9 bytes
+	uint8_t InvertWAS = 0;
+	uint8_t IsRelayActiveHigh = 0; //if zero, active low (default)
+	uint8_t MotorDriveDirection = 0;
+	uint8_t SingleInputWAS = 1;
+	uint8_t CytronDriver = 1;
+	uint8_t SteerSwitch = 0;  //1 if switch selected
+	uint8_t SteerButton = 0;  //1 if button selected
+	uint8_t ShaftEncoder = 0;
+	uint8_t PressureSensor = 0;
+	uint8_t CurrentSensor = 0;
+	uint8_t PulseCountMax = 5;
+	uint8_t IsDanfoss = 0;
+	uint8_t IsUseY_Axis = 1;     //0 = use X Axis, 1 = use Y axis
+};  Setup steerConfig;          // 13 bytes
 
 //Variables for config - 0 is false - Machine Config
 struct Config
 {
-    uint8_t raiseTime = 2;
-    uint8_t lowerTime = 4;
-    uint8_t enableToolLift = 0;
-    uint8_t isRelayActiveHigh = 0; //if zero, active low (default)
+	uint8_t raiseTime = 2;
+	uint8_t lowerTime = 4;
+	uint8_t enableToolLift = 0;
+	uint8_t isRelayActiveHigh = 0; //if zero, active low (default)
 
 };  Config aogConfig;   //4 bytes
 
@@ -385,1072 +387,1082 @@ int UDP_KBUS = 0, UDP_ISOBUS = 1, UDP_VBUS = 2;
 
 void PGNtoUDP(byte Bus, byte ResponseCode, byte ResLen, byte bytes[])
 {
-    // just pass the whole can_message_t in here and let AOG sort it out?
-    UDP_CANBusData[3] = ResponseCode; // this matches the google sheet to indicate type of response
-    UDP_CANBusData[4] = 4 + sizeof(bytes) + 2; // Length + 2 for Bus + ResponseCode
-    UDP_CANBusData[5] = Bus; // byte
-    for (uint8_t i = 0; i < sizeof(bytes); i++)
-    {
-        UDP_CANBusData[i + 6] = bytes[i];
-    }
-    Serial.print("Sending status stuff to UDP:  ResponseCode: "); Serial.print(ResponseCode, HEX);
-    Serial.print("  barr length: "); Serial.print(ResLen);
-    Serial.print("  Bus: "); Serial.println(Bus);
-    // no need for a checksum for our CAN UDP messages
-    Udp.beginPacket(ipDestination, 9999);
-    Udp.write(UDP_CANBusData, UDP_CANBusData[4]);
-    Udp.endPacket();
+	// just pass the whole can_message_t in here and let AOG sort it out?
+	UDP_CANBusData[3] = ResponseCode; // this matches the google sheet to indicate type of response
+	UDP_CANBusData[4] = 4 + sizeof(bytes) + 2; // Length + 2 for Bus + ResponseCode
+	UDP_CANBusData[5] = Bus; // byte
+	for (uint8_t i = 0; i < sizeof(bytes); i++)
+	{
+		UDP_CANBusData[i + 6] = bytes[i];
+	}
+	Serial.print("Sending status stuff to UDP:  ResponseCode: "); Serial.print(ResponseCode, HEX);
+	Serial.print("  barr length: "); Serial.print(ResLen);
+	Serial.print("  Bus: "); Serial.println(Bus);
+	// no need for a checksum for our CAN UDP messages
+	Udp.beginPacket(ipDestination, 9999);
+	Udp.write(UDP_CANBusData, UDP_CANBusData[4]);
+	Udp.endPacket();
 }
 //*******************************************************************************
- 
-  void setup()
-  {
-    UDP_CANBusData[0] = 0x80;
-    UDP_CANBusData[1] = 0x81;
-    UDP_CANBusData[2] = 0x7f;
 
-    delay(500);                         //Small delay so serial can monitor start up
-    set_arm_clock(450000000);           //Set CPU speed to 450mhz
-    Serial.print("CPU speed set to: ");
-    Serial.println(F_CPU_ACTUAL);
+void setup()
+{
+	UDP_CANBusData[0] = 0x80;
+	UDP_CANBusData[1] = 0x81;
+	UDP_CANBusData[2] = 0x7f;
 
-   //keep pulled high and drag low to activate, noise free safe   
+	delay(500);                         //Small delay so serial can monitor start up
+	set_arm_clock(450000000);           //Set CPU speed to 450mhz
+	Serial.print("CPU speed set to: ");
+	Serial.println(F_CPU_ACTUAL);
+
+	//keep pulled high and drag low to activate, noise free safe   
 #ifdef isAllInOneBoard
-    pinMode(Power_on_LED, OUTPUT);
-    digitalWrite(Power_on_LED, HIGH);
-    pinMode(Ethernet_Active_LED, OUTPUT);
-    pinMode(GPSRED_LED, OUTPUT);
-    pinMode(GPSGREEN_LED, OUTPUT);
-    pinMode(AUTOSTEER_STANDBY_LED, OUTPUT);
-    pinMode(AUTOSTEER_ACTIVE_LED, OUTPUT);
+	pinMode(Power_on_LED, OUTPUT);
+	digitalWrite(Power_on_LED, HIGH);
+	pinMode(Ethernet_Active_LED, OUTPUT);
+	pinMode(GPSRED_LED, OUTPUT);
+	pinMode(GPSGREEN_LED, OUTPUT);
+	pinMode(AUTOSTEER_STANDBY_LED, OUTPUT);
+	pinMode(AUTOSTEER_ACTIVE_LED, OUTPUT);
 #endif
 
-    pinMode(WORKSW_PIN, INPUT_PULLUP); 
-    pinMode(STEERSW_PIN, INPUT_PULLUP); 
-    pinMode(REMOTE_PIN, INPUT_PULLUP); 
-    pinMode(DIR1_RL_ENABLE, OUTPUT);
-    pinMode(13, OUTPUT);
-    
-    pinMode(PWM2_RPWM, OUTPUT); 
-    
-    //set up communication
-    Wire.begin();
-    Serial.begin(115200);
+	pinMode(WORKSW_PIN, INPUT_PULLUP);
+	pinMode(STEERSW_PIN, INPUT_PULLUP);
+	pinMode(REMOTE_PIN, INPUT_PULLUP);
+	pinMode(DIR1_RL_ENABLE, OUTPUT);
+	pinMode(13, OUTPUT);
 
-    delay (2000);
+	pinMode(PWM2_RPWM, OUTPUT);
 
-  /*    while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }*/
+	//set up communication
+	Wire.begin();
+	Serial.begin(115200);
 
-    SerialIMU->begin(115200);
-    rvc.begin(SerialIMU);
+	delay(2000);
 
-    // Check for i2c BNO08x
-    uint8_t error;
+	/*    while (!Serial) {
+	  ; // wait for serial port to connect. Needed for native USB port only
+	}*/
 
-      for(int16_t i = 0; i < nrBNO08xAdresses; i++)
-      {
-        bno08xAddress = bno08xAddresses[i];
-        
-        Serial.print("\r\nChecking for BNO08X on ");
-        Serial.println(bno08xAddress, HEX);
-        Wire.beginTransmission(bno08xAddress);
-        error = Wire.endTransmission();
-    
-        if (error == 0)
-        {
-          Serial.println("Error = 0");
-          Serial.print("BNO08X ADDRESs: 0x");
-          Serial.println(bno08xAddress, HEX);
-          Serial.println("BNO08X Ok.");
-          
-          // Initialize BNO080 lib        
-          if (bno08x.begin(bno08xAddress))
-          {
-            Wire.setClock(400000); //Increase I2C data rate to 400kHz
-  
-            delay(300);
+	SerialIMU->begin(115200);
+	rvc.begin(SerialIMU);
 
-            // Use GameRotationVector
-            bno08x.enableGameRotationVector(GYRO_LOOP_TIME); 
-  
-            useBNO08x = true;
-          }
-          else
-          {
-            Serial.println("BNO08x not detected at given I2C address.");
-          }
-        }
-        else 
-        {
-          Serial.println("Error = 4");
-          Serial.println("i2c BNO08x not Connected or Found"); 
-        }
-        if (useBNO08x) break;
-      }
+	// Check for i2c BNO08x
+	uint8_t error;
 
-      if (!useBNO08x)
-      {
-          static elapsedMillis rvcBnoTimer = 0;
-          Serial.println("\r\nChecking for serial BNO08x");
-          while (rvcBnoTimer < 1000)
-          {
-              //check if new bnoData
-              if (rvc.read(&bnoData))
-              {
-                  useBNO08xRVC = true;
-                  Serial.println("Serial BNO08x Good To Go :-)");
-                  imuHandler();
-                  break;
-              }
-          }
-          if (!useBNO08xRVC)  Serial.println("No Serial BNO08x not Connected or Found");
-      }
-  
-    EEPROM.get(0, EEread);     // read identifier
-      
-    if (EEread != EEP_Ident)   // check on first start and write EEPROM
-    {           
-      EEPROM.put(0, EEP_Ident);
-      EEPROM.put(6, aogConfig); //Machine
-      EEPROM.put(10, steerSettings);   
-      EEPROM.put(40, steerConfig);
-      EEPROM.put(60, networkAddress);      
-      EEPROM.update(70, Brand);
-      EEPROM.update(72, gpsMode);
-      //EEPROM.put(80, outputWAS);
-    }
-    else 
-    { 
-      EEPROM.get(6, aogConfig); //Machine
-      EEPROM.get(10, steerSettings);     // read the Settings
-      EEPROM.get(40, steerConfig);
-      EEPROM.get(60, networkAddress);  
-      //EEPROM.get(80, outputWAS);
-      Brand = EEPROM.read(70);
-      gpsMode = EEPROM.read(72);
-    }
-    
-    // for PWM High to Low interpolator
-    highLowPerDeg = ((float)(steerSettings.highPWM - steerSettings.lowPWM)) / LOW_HIGH_DEGREES;
-         
-    //----Teensy 4.1 Ethernet--Start---------------------
-  
-      delay(500);
- 
-      if (Ethernet.linkStatus() == LinkOFF) 
-      {
-        Serial.println("\r\nEthernet cable is not connected - Who cares we will start ethernet anyway.");
-      }  
+	for (int16_t i = 0; i < nrBNO08xAdresses; i++)
+	{
+		bno08xAddress = bno08xAddresses[i];
 
-      Ethernet.begin(mac,0);          // Start Ethernet with IP 0.0.0.0
+		Serial.print("\r\nChecking for BNO08X on ");
+		Serial.println(bno08xAddress, HEX);
+		Wire.beginTransmission(bno08xAddress);
+		error = Wire.endTransmission();
 
-      //grab the ip from EEPROM
-      ip[0] = networkAddress.ipOne;
-      ip[1] = networkAddress.ipTwo;
-      ip[2] = networkAddress.ipThree;
+		if (error == 0)
+		{
+			Serial.println("Error = 0");
+			Serial.print("BNO08X ADDRESs: 0x");
+			Serial.println(bno08xAddress, HEX);
+			Serial.println("BNO08X Ok.");
 
-      ipDestination[0] = networkAddress.ipOne;
-      ipDestination[1] = networkAddress.ipTwo;
-      ipDestination[2] = networkAddress.ipThree;
-      
-      Ethernet.setLocalIP(ip);  // Change IP address to IP set by user
-      Serial.println("\r\nEthernet status OK");
-      Serial.print("IP set Manually: ");
-      Serial.println(Ethernet.localIP());
-    
-      Udp.begin(localPort);
-      NtripUdp.begin(NtripPort);
+			// Initialize BNO080 lib        
+			if (bno08x.begin(bno08xAddress))
+			{
+				Wire.setClock(400000); //Increase I2C data rate to 400kHz
 
-      GPS_setup();
+				delay(300);
 
-    //----Teensy 4.1 Ethernet--End---------------------
+				// Use GameRotationVector
+				bno08x.enableGameRotationVector(GYRO_LOOP_TIME);
 
-    //----Teensy 4.1 CANBus--Start---------------------
+				useBNO08x = true;
+			}
+			else
+			{
+				Serial.println("BNO08x not detected at given I2C address.");
+			}
+		}
+		else
+		{
+			Serial.println("Error = 4");
+			Serial.println("i2c BNO08x not Connected or Found");
+		}
+		if (useBNO08x) break;
+	}
+
+	if (!useBNO08x)
+	{
+		static elapsedMillis rvcBnoTimer = 0;
+		Serial.println("\r\nChecking for serial BNO08x");
+		while (rvcBnoTimer < 1000)
+		{
+			//check if new bnoData
+			if (rvc.read(&bnoData))
+			{
+				useBNO08xRVC = true;
+				Serial.println("Serial BNO08x Good To Go :-)");
+				imuHandler();
+				break;
+			}
+		}
+		if (!useBNO08xRVC)  Serial.println("No Serial BNO08x not Connected or Found");
+	}
+
+	EEPROM.get(0, EEread);     // read identifier
+
+	if (EEread != EEP_Ident)   // check on first start and write EEPROM
+	{
+		EEPROM.put(0, EEP_Ident);
+		EEPROM.put(6, aogConfig); //Machine
+		EEPROM.put(10, steerSettings);
+		EEPROM.put(40, steerConfig);
+		EEPROM.put(60, networkAddress);
+		EEPROM.update(70, Brand);
+		EEPROM.update(72, gpsMode);
+		//EEPROM.put(80, outputWAS);
+	}
+	else
+	{
+		EEPROM.get(6, aogConfig); //Machine
+		EEPROM.get(10, steerSettings);     // read the Settings
+		EEPROM.get(40, steerConfig);
+		EEPROM.get(60, networkAddress);
+		//EEPROM.get(80, outputWAS);
+		Brand = EEPROM.read(70);
+		gpsMode = EEPROM.read(72);
+	}
+
+	// for PWM High to Low interpolator
+	highLowPerDeg = ((float)(steerSettings.highPWM - steerSettings.lowPWM)) / LOW_HIGH_DEGREES;
+
+	//----Teensy 4.1 Ethernet--Start---------------------
+
+	delay(500);
+
+	if (Ethernet.linkStatus() == LinkOFF)
+	{
+		Serial.println("\r\nEthernet cable is not connected - Who cares we will start ethernet anyway.");
+	}
+
+	Ethernet.begin(mac, 0);          // Start Ethernet with IP 0.0.0.0
+
+	//grab the ip from EEPROM
+	ip[0] = networkAddress.ipOne;
+	ip[1] = networkAddress.ipTwo;
+	ip[2] = networkAddress.ipThree;
+
+	ipDestination[0] = networkAddress.ipOne;
+	ipDestination[1] = networkAddress.ipTwo;
+	ipDestination[2] = networkAddress.ipThree;
+
+	Ethernet.setLocalIP(ip);  // Change IP address to IP set by user
+	Serial.println("\r\nEthernet status OK");
+	Serial.print("IP set Manually: ");
+	Serial.println(Ethernet.localIP());
+
+	Udp.begin(localPort);
+	NtripUdp.begin(NtripPort);
+
+	GPS_setup();
+
+	//----Teensy 4.1 Ethernet--End---------------------
+
+	//----Teensy 4.1 CANBus--Start---------------------
 
 #ifdef isAllInOneBoard
-      pinMode(AUTOSTEER_STANDBY_LED, LOW);
-      pinMode(AUTOSTEER_ACTIVE_LED, LOW);
+	pinMode(AUTOSTEER_STANDBY_LED, LOW);
+	pinMode(AUTOSTEER_ACTIVE_LED, LOW);
 #else
-      pinMode(ledPin, OUTPUT);    //CAN Valve Ready LED
-      digitalWrite(ledPin, LOW);
+	pinMode(ledPin, OUTPUT);    //CAN Valve Ready LED
+	digitalWrite(ledPin, LOW);
 
-      pinMode(engageLED,OUTPUT);  //CAN engage LED
-      digitalWrite(engageLED,LOW);
+	pinMode(engageLED, OUTPUT);  //CAN engage LED
+	digitalWrite(engageLED, LOW);
 #endif
 
-      Serial.println("\r\nStarting CAN-Bus Ports");
-      if (Brand == 0) Serial.println("Brand = Claas (Set Via Service Tool)");
-      else if (Brand == 1) Serial.println("Brand = Valtra / Massey (Set Via Service Tool)");
-      else if (Brand == 2) Serial.println("Brand = CaseIH / New Holland (Set Via Service Tool)");
-      else if (Brand == 3) Serial.println("Brand = Fendt SCR,S4,Gen6 (Set Via Service Tool)");
-      else if (Brand == 4) Serial.println("Brand = JCB (Set Via Service Tool)");
-      else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
-      else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
-      else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
-      else Serial.println("No Tractor Brand Set, Set Via Service Tool");
+	Serial.println("\r\nStarting CAN-Bus Ports");
+	if (Brand == 0) Serial.println("Brand = Claas (Set Via Service Tool)");
+	else if (Brand == 1) Serial.println("Brand = Valtra / Massey (Set Via Service Tool)");
+	else if (Brand == 2) Serial.println("Brand = CaseIH / New Holland (Set Via Service Tool)");
+	else if (Brand == 3) Serial.println("Brand = Fendt SCR,S4,Gen6 (Set Via Service Tool)");
+	else if (Brand == 4) Serial.println("Brand = JCB (Set Via Service Tool)");
+	else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
+	else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
+	else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
+    else if (Brand == 8) Serial.println("Brand = Cat MT (Set Via Service Tool)");
+	else Serial.println("No Tractor Brand Set, Set Via Service Tool");
 
-      Serial.println("\r\nGPS Mode:");
-      if (gpsMode == 1) Serial.println("GPS Forwarding @ 115200 (Set Via Service Tool)");
-      else if (gpsMode == 2) Serial.println("GPS Forwarding @ 460800 (Set Via Service Tool)");
-      else if (gpsMode == 3) Serial.println("Panda Mode @ 115200 (Set Via Service Tool)");
-      else if (gpsMode == 4) Serial.println("Panda Mode @ 460800 (Set Via Service Tool)");
-      else Serial.println("No GPS mode selected - Set Via Service Tool");
+	Serial.println("\r\nGPS Mode:");
+	if (gpsMode == 1) Serial.println("GPS Forwarding @ 115200 (Set Via Service Tool)");
+	else if (gpsMode == 2) Serial.println("GPS Forwarding @ 460800 (Set Via Service Tool)");
+	else if (gpsMode == 3) Serial.println("Panda Mode @ 115200 (Set Via Service Tool)");
+	else if (gpsMode == 4) Serial.println("Panda Mode @ 460800 (Set Via Service Tool)");
+	else Serial.println("No GPS mode selected - Set Via Service Tool");
 
-      delay (3000);
-      CAN_setup();   //Run the Setup void (CAN page)
+	delay(3000);
+	CAN_setup();   //Run the Setup void (CAN page)
 
-    //----Teensy 4.1 CANBus--End---------------------
+	//----Teensy 4.1 CANBus--End---------------------
 
-      Serial.print(inoVersion);
-      Serial.println("\r\nSetup complete, waiting for AgOpenGPS");
-      Serial.println("\r\nTo Start AgOpenGPS CANBUS Service Tool Enter 'S'");
-/*
-      //Show WAS CAL
-      elapsedMicros speedCheck = 0;
-      for (float i = -70.0; i < 71.0; i += 0.1)
-      {
-          float dist = multiMap<float>(i, inputWAS, outputWAS, 21);
-          Serial.print(i);
-          Serial.print('\t');
-          Serial.println(dist, 1);
-      }
-      Serial.print(speedCheck);
-      Serial.println(" Micros, Done...");
-*/
-  }
+	Serial.print(inoVersion);
+	Serial.println("\r\nSetup complete, waiting for AgOpenGPS");
+	Serial.println("\r\nTo Start AgOpenGPS CANBUS Service Tool Enter 'S'");
+	/*
+		  //Show WAS CAL
+		  elapsedMicros speedCheck = 0;
+		  for (float i = -70.0; i < 71.0; i += 0.1)
+		  {
+			  float dist = multiMap<float>(i, inputWAS, outputWAS, 21);
+			  Serial.print(i);
+			  Serial.print('\t');
+			  Serial.println(dist, 1);
+		  }
+		  Serial.print(speedCheck);
+		  Serial.println(" Micros, Done...");
+	*/
+}
 // End of Setup
 
-  void loop()
-  {
+void loop()
+{
 
-    currentTime = millis();
+	currentTime = millis();
 
-    //--Main Timed Loop----------------------------------   
-    if (currentTime - lastTime >= LOOP_TIME)
-    {
-        // Sample CAN data:
-        //if (ShowCANData) {
-        //    byte Bytes[] = { 101, 102, 103 };
-        //    PGNtoUDP(2, 2, sizeof(Bytes), Bytes);
-        //}
-        // sample ends
+	//--Main Timed Loop----------------------------------   
+	if (currentTime - lastTime >= LOOP_TIME)
+	{
+		// Sample CAN data:
+		//if (ShowCANData) {
+		//    byte Bytes[] = { 101, 102, 103 };
+		//    PGNtoUDP(2, 2, sizeof(Bytes), Bytes);
+		//}
+		// sample ends
 
-      lastTime = currentTime;
-     
-      //reset debounce
-      encEnable = true;
+		lastTime = currentTime;
 
-      //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-      if (watchdogTimer++ > 250) {
-          watchdogTimer = WATCHDOG_FORCE_VALUE;
-          // reset CANBUSDirection to "unknown"
-          Direction = 99;
-      }
+		//reset debounce
+		encEnable = true;
+
+		//If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
+		if (watchdogTimer++ > 250) {
+			watchdogTimer = WATCHDOG_FORCE_VALUE;
+			// reset CANBUSDirection to "unknown"
+			Direction = 99;
+		}
 #ifdef isAllInOneBoard
-      if (Ethernet.linkStatus() == LinkON)
-      {
-          digitalWrite(Power_on_LED, LOW);
-          digitalWrite(Ethernet_Active_LED, HIGH);
-      }
-      else
-      {
-          digitalWrite(Ethernet_Active_LED, LOW);
-          digitalWrite(Power_on_LED, HIGH);
-      }
+		if (Ethernet.linkStatus() == LinkON)
+		{
+			digitalWrite(Power_on_LED, LOW);
+			digitalWrite(Ethernet_Active_LED, HIGH);
+		}
+		else
+		{
+			digitalWrite(Ethernet_Active_LED, LOW);
+			digitalWrite(Power_on_LED, HIGH);
+		}
 #endif
-      //read all the switches
+		//read all the switches
 
-      //CANBus     
-      if (steeringValveReady == 20 || steeringValveReady == 16)
-      {
+		//CANBus     
+		if (steeringValveReady == 20 || steeringValveReady == 16)
+		{
 #ifdef isAllInOneBoard
-          digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
-          digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+			digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
+			digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
 #else
-        digitalWrite(ledPin, HIGH);
+			digitalWrite(ledPin, HIGH);
 #endif
-      } 
-      else 
-      {
+		}
+		else
+		{
 #ifdef isAllInOneBoard
-          digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
-          digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+			digitalWrite(AUTOSTEER_STANDBY_LED, LOW);
+			digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
 #else
-        digitalWrite(ledPin, LOW);
+			digitalWrite(ledPin, LOW);
 #endif
-      }
-  
-      workSwitch = digitalRead(WORKSW_PIN);     // read work switch (PCB pin)
-      if (workCAN == 1) workSwitch = 0;         // If CAN workswitch is on, set workSwitch ON
-      
-      if (steerConfig.SteerSwitch == 1)         //steer switch on - off
-      {
-        steerSwitch = digitalRead(STEERSW_PIN); //read auto steer enable switch open = 0n closed = Off
-      }
-      else if(steerConfig.SteerButton == 1)     //steer Button momentary
-      {
-        reading = digitalRead(STEERSW_PIN); 
+		}
 
-        //CAN
-        if (engageCAN == 1) reading = 0;              //CAN Engage is ON (Button is Pressed)
-              
-            if (reading == LOW && previous == HIGH) 
-            {
-                if (currentState == 1)
-                {
-                if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
-                if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer 
-                currentState = 0;
-                steerSwitch = 0;
-                }
-                else
-                {
-                currentState = 1;
-                steerSwitch = 1;
-                }
-            }      
-            previous = reading;
-        
-           //--------CAN CutOut--------------------------
-           if (steeringValveReady != 20 && steeringValveReady != 16)
-           {            
-              steerSwitch = 1; // reset values like it turned off
-              currentState = 1;
-              previous = HIGH;
-           }
-      }
-      
-        else     // No steer switch and no steer button 
-        {
-        
-            if (steeringValveReady != 20 && steeringValveReady != 16)
-            {            
-                steerSwitch = 1; // reset values like it turned off
-                currentState = 1;
-                previous = HIGH;
-            }
-      
-            if (previousStatus != guidanceStatus) 
-            {
-                if (guidanceStatus == 1 && steerSwitch == 1 && previousStatus == 0)
-                {
-                if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
-                if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer  
-                steerSwitch = 0;
-                }
-                else
-                {
-                steerSwitch = 1;
-                }
-            }      
-            previousStatus = guidanceStatus;
-        }
-      
-          if (steerConfig.ShaftEncoder && pulseCount >= steerConfig.PulseCountMax) 
-          {
-            steerSwitch = 1; // reset values like it turned off
-            currentState = 1;
-            previous = 0;
-          }     
+		workSwitch = digitalRead(WORKSW_PIN);     // read work switch (PCB pin)
+		if (workCAN == 1) workSwitch = 0;         // If CAN workswitch is on, set workSwitch ON
 
-          // Current sensor?
-          if (steerConfig.CurrentSensor)
-          {
- 
-          }
+		if (steerConfig.SteerSwitch == 1)         //steer switch on - off
+		{
+			steerSwitch = digitalRead(STEERSW_PIN); //read auto steer enable switch open = 0n closed = Off
+		}
+		else if (steerConfig.SteerButton == 1)     //steer Button momentary
+		{
+			reading = digitalRead(STEERSW_PIN);
 
-          // Pressure sensor?
-          if (steerConfig.PressureSensor)
-          {
+			//CAN
+			if (engageCAN == 1) reading = 0;              //CAN Engage is ON (Button is Pressed)
 
-          }
-      
-          remoteSwitch = digitalRead(REMOTE_PIN); //read auto steer enable switch open = 0n closed = Off
-          switchByte = 0;
-          switchByte |= (remoteSwitch << 2);  //put remote in bit 2
-          switchByte |= (steerSwitch << 1);   //put steerswitch status in bit 1 position
-          switchByte |= workSwitch;   
-     
-         //get steering position       
-     
-         //DETERMINE ACTUAL STEERING POSITION  *********From CAN-Bus************
-          if (Brand == 7)
-          {
-        
-          }
-          else
-          {
-              if(intendToSteer == 0) setCurve = estCurve;  //Not steering so setCurve = estCurve
+			if (reading == LOW && previous == HIGH)
+			{
+				if (currentState == 1)
+				{
+                	if (Brand == 1) steeringValveReady = 16;
+					if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
+					if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer 
+					currentState = 0;
+					steerSwitch = 0;
+				}
+				else
+				{
+					currentState = 1;
+					steerSwitch = 1;
+				}
+			}
+			previous = reading;
 
-              steeringPosition = (setCurve - 32128 + steerSettings.wasOffset); 
-              if (Brand == 3) steerAngleActual = (float)(steeringPosition) / (steerSettings.steerSensorCounts * 10);  //Fendt Only
-              else if (Brand == 5) steerAngleActual = (float)(steeringPosition) / (steerSettings.steerSensorCounts * 10);  //Fendt Only
-              else steerAngleActual = (float)(steeringPosition) / steerSettings.steerSensorCounts;
-          }
-      
-          //Ackerman fix
-          if (steerAngleActual < 0) steerAngleActual = (steerAngleActual * steerSettings.AckermanFix);
+			//--------CAN CutOut--------------------------
+			if (steeringValveReady != 20 && steeringValveReady != 16)
+			{
+				steerSwitch = 1; // reset values like it turned off
+				currentState = 1;
+				previous = HIGH;
+			}
+		}
 
-          //Map WAS
-          float mappedWAS;
-          if(Brand == 3) mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWASFendt, 21);
-          else if (Brand == 5) mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWASFendt, 21);
-          else mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWAS, 21);
-          steerAngleActual = mappedWAS;
-      
-          if (watchdogTimer < WATCHDOG_THRESHOLD)
-          { 
-            //We are good to steer
-            digitalWrite(PWM2_RPWM, 1);       
-      
-            steerAngleError = steerAngleActual - steerAngleSetPoint;   //calculate the steering error
-            //if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
-        
-              if (Brand !=7 )
-              {
-                calcSteeringPID();  //do the pid
-                motorDrive();       //out to motors the pwm value
-              }
-            intendToSteer = 1; //CAN Curve Inteeded for Steering
-          
-          }
-          else
-          {
-            //we've lost the comm to AgOpenGPS, or just stop request
-            //****** If CAN engage is ON (1), don't turn off saftey valve ******
-            if (engageCAN == 0)
-            {  
-                digitalWrite(PWM2_RPWM, 0); 
-            }
+		else     // No steer switch and no steer button 
+		{
 
-            intendToSteer = 0; //CAN Curve NOT Inteeded for Steering   
-            if (Brand !=7 )
-            {     
-                pwmDrive = 0; //turn off steering motor
-                motorDrive(); //out to motors the pwm value
-            }
-            pulseCount=0;
-          }
+			if (steeringValveReady != 20 && steeringValveReady != 16)
+			{
+				steerSwitch = 1; // reset values like it turned off
+				currentState = 1;
+				previous = HIGH;
+			}
 
-        //-------CAN Set Curve ---------------
+			if (previousStatus != guidanceStatus)
+			{
+				if (guidanceStatus == 1 && steerSwitch == 1 && previousStatus == 0)
+				{
+					if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
+					if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer  
+					steerSwitch = 0;
+				}
+				else
+				{
+					steerSwitch = 1;
+				}
+			}
+			previousStatus = guidanceStatus;
+		}
 
-        VBus_Send();
+		if (steerConfig.ShaftEncoder && pulseCount >= steerConfig.PulseCountMax)
+		{
+			steerSwitch = 1; // reset values like it turned off
+			currentState = 1;
+			previous = 0;
+		}
 
-        //-------CAN Hitch Control--------------- 
-    
-        if (Brand == 3) SetRelaysFendt();  //If Brand = Fendt run the hitch control bottom of this page
-        if (Brand == 0) SetRelaysClaas();  //If Brand = Claas run the hitch control bottom of this page
+		// Current sensor?
+		if (steerConfig.CurrentSensor)
+		{
 
-        //send empty pgn to AgIO to show activity
-          if (++helloCounter > 10)
-          {
-          Udp.beginPacket(ipDestination, AOGPort);
-          Udp.write(helloAgIO, sizeof(helloAgIO));
-          Udp.endPacket();
-          helloCounter = 0;
-          }
-    } //end of main timed loop
+		}
 
-    //This runs continuously, outside of the timed loop, keeps checking for new udpData, turn sense, CAN data etc
-    //delay(1); 
+		// Pressure sensor?
+		if (steerConfig.PressureSensor)
+		{
 
-    //--CAN--Start--
+		}
 
-      VBus_Receive();
+		remoteSwitch = digitalRead(REMOTE_PIN); //read auto steer enable switch open = 0n closed = Off
+		switchByte = 0;
+		switchByte |= (remoteSwitch << 2);  //put remote in bit 2
+		switchByte |= (steerSwitch << 1);   //put steerswitch status in bit 1 position
+		switchByte |= workSwitch;
 
-      // below code now integrated in above functions
-      //if (VBUSSend && ShowCANData) {
-      //    Udp.beginPacket(ipDestination, 9999);
-      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-      //    Udp.endPacket();
-      //    Serial.println("Sending VBUS status packet");
-      //    VBUSSend = false;
-      //}
-      ISO_Receive();
-      //if (ISOBUSSend && ShowCANData) {
-      //    Udp.beginPacket(ipDestination, 9999);
-      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-      //    Udp.endPacket();
-      //    Serial.println("Sending ISOBUS status packet");
-      //    ISOBUSSend = false;
-      //}
-      K_Receive();
-      //if (KBUSSend && ShowCANData) {
-      //    Udp.beginPacket(ipDestination, 9999);
-      //    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
-      //    Udp.endPacket();
-      //    Serial.println("Sending KBUS status packet");
-      //    KBUSSend = false;
-      //}
+		//get steering position       
+
+		//DETERMINE ACTUAL STEERING POSITION  *********From CAN-Bus************
+		if (Brand == 7)
+		{
+
+		}
+		else
+		{
+			if (intendToSteer == 0) setCurve = estCurve;  //Not steering so setCurve = estCurve
+
+			steeringPosition = (setCurve - 32128 + steerSettings.wasOffset);
+			if (Brand == 3) steerAngleActual = (float)(steeringPosition) / (steerSettings.steerSensorCounts * 10);  //Fendt Only
+			else if (Brand == 5) steerAngleActual = (float)(steeringPosition) / (steerSettings.steerSensorCounts * 10);  //Fendt Only
+			else steerAngleActual = (float)(steeringPosition) / steerSettings.steerSensorCounts;
+		}
+
+		//Ackerman fix
+		if (steerAngleActual < 0) steerAngleActual = (steerAngleActual * steerSettings.AckermanFix);
+
+		//Map WAS
+		float mappedWAS;
+		if (Brand == 3) mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWASFendt, 21);
+		else if (Brand == 5) mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWASFendt, 21);
+		else mappedWAS = multiMap<float>(steerAngleActual, inputWAS, outputWAS, 21);
+		steerAngleActual = mappedWAS;
+
+		if (watchdogTimer < WATCHDOG_THRESHOLD)
+		{
+			//We are good to steer
+			digitalWrite(PWM2_RPWM, 1);
+
+			steerAngleError = steerAngleActual - steerAngleSetPoint;   //calculate the steering error
+			//if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
+
+			if (Brand != 7)
+			{
+				calcSteeringPID();  //do the pid
+				motorDrive();       //out to motors the pwm value
+			}
+			intendToSteer = 1; //CAN Curve Inteeded for Steering
+
+		}
+		else
+		{
+			//we've lost the comm to AgOpenGPS, or just stop request
+			//****** If CAN engage is ON (1), don't turn off saftey valve ******
+			if (engageCAN == 0)
+			{
+				digitalWrite(PWM2_RPWM, 0);
+			}
+
+			intendToSteer = 0; //CAN Curve NOT Inteeded for Steering   
+			if (Brand != 7)
+			{
+				pwmDrive = 0; //turn off steering motor
+				motorDrive(); //out to motors the pwm value
+			}
+			pulseCount = 0;
+		}
+
+		//-------CAN Set Curve ---------------
+
+		VBus_Send();
+
+		//-------CAN Hitch Control--------------- 
+
+		if (Brand == 3) SetRelaysFendt();  //If Brand = Fendt run the hitch control bottom of this page
+		if (Brand == 0) SetRelaysClaas();  //If Brand = Claas run the hitch control bottom of this page
+
+		//send empty pgn to AgIO to show activity
+		if (++helloCounter > 10)
+		{
+			Udp.beginPacket(ipDestination, AOGPort);
+			Udp.write(helloAgIO, sizeof(helloAgIO));
+			Udp.endPacket();
+			helloCounter = 0;
+		}
+	} //end of main timed loop
+
+	//This runs continuously, outside of the timed loop, keeps checking for new udpData, turn sense, CAN data etc
+	//delay(1); 
+
+	//--CAN--Start--
+
+	VBus_Receive();
+
+	// below code now integrated in above functions
+	//if (VBUSSend && ShowCANData) {
+	//    Udp.beginPacket(ipDestination, 9999);
+	//    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+	//    Udp.endPacket();
+	//    Serial.println("Sending VBUS status packet");
+	//    VBUSSend = false;
+	//}
+	ISO_Receive();
+	//if (ISOBUSSend && ShowCANData) {
+	//    Udp.beginPacket(ipDestination, 9999);
+	//    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+	//    Udp.endPacket();
+	//    Serial.println("Sending ISOBUS status packet");
+	//    ISOBUSSend = false;
+	//}
+	K_Receive();
+	//if (KBUSSend && ShowCANData) {
+	//    Udp.beginPacket(ipDestination, 9999);
+	//    Udp.write(UDP_CANBusData, UDP_CANBusData[5]);
+	//    Udp.endPacket();
+	//    Serial.println("Sending KBUS status packet");
+	//    KBUSSend = false;
+	//}
 
 
 
 
-    if ((millis()) > relayTime){
+	if ((millis()) > relayTime) {
 #ifdef isAllInOneBoard
-        digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
-        digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
+		digitalWrite(AUTOSTEER_STANDBY_LED, HIGH);
+		digitalWrite(AUTOSTEER_ACTIVE_LED, LOW);
 #else
-    digitalWrite(engageLED,LOW);
+		digitalWrite(engageLED, LOW);
 #endif
-    engageCAN = 0;
-    }
+		engageCAN = 0;
+	}
 
-    //Service Tool
-      if (Serial.available())
-      {        // Read Data From Serial Monitor 
-        byte b = Serial.read();
-    
-        while (Serial.available()){
-          Serial.read();              //Clear the serial buffer
-        }
-    
-        if ( b == 'S') {
-          Service = 1; 
-          Service_Tool();
-        }
-      }
+	//Service Tool
+	if (Serial.available())
+	{        // Read Data From Serial Monitor 
+		byte b = Serial.read();
 
-    //--CAN--End-----
+		while (Serial.available()) {
+			Serial.read();              //Clear the serial buffer
+		}
 
-    //**GPS**
-      if (useBNO08x)
-      {
-          Read_IMU();
-      }
-      else
-      {
-          //RVC BNO08x
-          if (rvc.read(&bnoData)) useBNO08xRVC = true;
-      }
+		if (b == 'S') {
+			Service = 1;
+			Service_Tool();
+		}
+	}
 
-      if (useBNO08xRVC && bnoTimer > 40 && bnoTrigger)
-      {
-          bnoTrigger = false;
-          imuHandler();   //Get IMU data ready
-      }
+	//--CAN--End-----
 
-      if (gpsMode == 1 || gpsMode == 2)
-      {
-          Forward_GPS();
-      }
-      else
-      {
-          Panda_GPS();
-      }
+	//**GPS**
+	if (useBNO08x)
+	{
+		Read_IMU();
+	}
+	else
+	{
+		//RVC BNO08x
+		if (rvc.read(&bnoData)) useBNO08xRVC = true;
+	}
 
-      Forward_Ntrip();
-  
-     //Check for UDP Packet
-        int packetSize = Udp.parsePacket();
-        if (packetSize) {
-          //Serial.println("UDP Data Avalible"); 
-          udpSteerRecv(packetSize);
-        }
+	if (useBNO08xRVC && bnoTimer > 40 && bnoTrigger)
+	{
+		bnoTrigger = false;
+		imuHandler();   //Get IMU data ready
+	}
 
-        if (encEnable)
-        {
-          thisEnc = digitalRead(REMOTE_PIN);
-          if (thisEnc != lastEnc)
-          {
-            lastEnc = thisEnc;
-            if ( lastEnc) EncoderFunc();
-          }
-        }
-      
-  } // end of main loop
+	if (gpsMode == 1 || gpsMode == 2)
+	{
+		Forward_GPS();
+	}
+	else
+	{
+		Panda_GPS();
+	}
+
+	Forward_Ntrip();
+
+	//Check for UDP Packet
+	int packetSize = Udp.parsePacket();
+	if (packetSize) {
+		//Serial.println("UDP Data Avalible"); 
+		udpSteerRecv(packetSize);
+	}
+
+	if (encEnable)
+	{
+		thisEnc = digitalRead(REMOTE_PIN);
+		if (thisEnc != lastEnc)
+		{
+			lastEnc = thisEnc;
+			if (lastEnc) EncoderFunc();
+		}
+	}
+
+} // end of main loop
 
 //********************************************************************************
 
 void udpSteerRecv(int sizeToRead)
 {
-  if (sizeToRead > 128) sizeToRead = 128;
-  IPAddress src_ip = Udp.remoteIP();
-  Udp.read(udpData, sizeToRead);
+	if (sizeToRead > 128) sizeToRead = 128;
+	IPAddress src_ip = Udp.remoteIP();
+	Udp.read(udpData, sizeToRead);
 
-  if (udpData[0] == 0x80 && udpData[1] == 0x81 && udpData[2] == 0x7F) //Data
-  {
-    if (udpData[3] == 0xAA) // CANBUS set manufacturer
-    {
-        Serial.print("Received CANBUS manufacturer change to manufacturer ");
-        Serial.println(udpData[5]);
-        switch (udpData[5])
-        {
-        case 0: Claas();
-            break;
-        case 1: Valtra();
-            break;
-        case 2: CNH();
-            break;
-        case 3: Fendt();
-            break;
-        case 4: JCB();
-            break;
-        case 5: FendtOne();
-            break;
-        case 6: Lindner();
-            break;
-        case 7: AgOpenGPS();
-            break;
-        default:
-            break;
-        }
-    }
-    else if (udpData[3] == 0xAB) // query CANBUS machinery brand
-    {
-        Brand = EEPROM.read(70);
-        UDP_CANBusData[3] = 0xAD; // change response code
-        UDP_CANBusData[4] = 1; // Length
-        UDP_CANBusData[5] = Brand;
-        int16_t CKUDP = 0;
-        for (uint8_t i = 2; i < UDP_CANBusData[4] + 5; i++)
-        {
-            CKUDP = (CKUDP + UDP_CANBusData[i]);
-        }
-        UDP_CANBusData[UDP_CANBusData[4] + 5] = CKUDP;
-        Udp.beginPacket(ipDestination, 9999);
-        Udp.write(UDP_CANBusData, UDP_CANBusData[4] + 6);
-        Udp.endPacket();
-        UDP_CANBusData[3] = 0xAB; // and put it back
-    }
-    else if (udpData[3] == 0xAC) // CANBUS state changes
-    {
-        if (udpData[5] == 0) {
-            Serial.print("Received signal to disable diagnostics ");
-            ShowCANData = 0;
-        }
-        else if (udpData[5] == 1) {
-            Serial.print("Received signal to enable diagnostics ");
-            ShowCANData = 1;
-        }
-        else if (udpData[5] == 2) {
-            Serial.println("Received signal to disable filters ");
-            DisableVBUSFilters();
-            DisableKBUSFilters();
-            EchoPGNs = true;
-            ShowCANData = 1;
-        }
-        else if (udpData[5] == 3) {
-            Serial.println("Received signal to enable filters, so rebooting ");
-            delay(1000);
-            SCB_AIRCR = 0x05FA0004; //Teensy Reset
-        }
-    }
-    else if (udpData[3] == 0xFE)  //254, Steer data
-    {
-      gpsSpeed = ((float)(udpData[5] | udpData[6] << 8))*0.1;
+	if (udpData[0] == 0x80 && udpData[1] == 0x81 && udpData[2] == 0x7F) //Data
+	{
+		if (udpData[3] == 0xAA) // CANBUS set manufacturer
+		{
+			Serial.print("Received CANBUS manufacturer change to manufacturer ");
+			Serial.println(udpData[5]);
+			switch (udpData[5])
+			{
+			case 0: Claas();
+				break;
+			case 1: Valtra();
+				break;
+			case 2: CNH();
+				break;
+			case 3: Fendt();
+				break;
+			case 4: JCB();
+				break;
+			case 5: FendtOne();
+				break;
+			case 6: Lindner();
+				break;
+			case 7: AgOpenGPS();
+				break;
+			case 8: CatMT();
+				break;
+			default:
+				break;
+			}
+		}
+		else if (udpData[3] == 0xAB) // query CANBUS machinery brand
+		{
+			Brand = EEPROM.read(70);
+			UDP_CANBusData[3] = 0xAD; // change response code
+			UDP_CANBusData[4] = 1; // Length
+			UDP_CANBusData[5] = Brand;
+			int16_t CKUDP = 0;
+			for (uint8_t i = 2; i < UDP_CANBusData[4] + 5; i++)
+			{
+				CKUDP = (CKUDP + UDP_CANBusData[i]);
+			}
+			UDP_CANBusData[UDP_CANBusData[4] + 5] = CKUDP;
+			Udp.beginPacket(ipDestination, 9999);
+			Udp.write(UDP_CANBusData, UDP_CANBusData[4] + 6);
+			Udp.endPacket();
+			UDP_CANBusData[3] = 0xAB; // and put it back
+		}
+		else if (udpData[3] == 0xAC) // CANBUS state changes
+		{
+			if (udpData[5] == 0) {
+				Serial.print("Received signal to disable diagnostics ");
+				ShowCANData = 0;
+			}
+			else if (udpData[5] == 1) {
+				Serial.print("Received signal to enable diagnostics ");
+				ShowCANData = 1;
+			}
+			else if (udpData[5] == 2) {
+				Serial.println("Received signal to disable filters ");
+				DisableVBUSFilters();
+				DisableKBUSFilters();
+				EchoPGNs = true;
+				ShowCANData = 1;
+			}
+			else if (udpData[5] == 3) {
+				Serial.println("Received signal to enable filters, so rebooting ");
+				delay(1000);
+				SCB_AIRCR = 0x05FA0004; //Teensy Reset
+			}
+		}
+		else if (udpData[3] == 0xFE)  //254, Steer data
+		{
+			gpsSpeed = ((float)(udpData[5] | udpData[6] << 8)) * 0.1;
 
-      guidanceStatus = udpData[7];
-      
-      //Bit 8,9    set point steer angle * 100 is sent
-      steerAngleSetPoint = ((float)(udpData[8] | ((int8_t)udpData[9]) << 8))*0.01; //high low bytes
-      
-      //Serial.println(gpsSpeed); 
-      
-	  if ((bitRead(guidanceStatus, 0) == 0) || (steerSwitch == 1))        //AgOpen or Steer switch off
-	  {
-		  watchdogTimer = WATCHDOG_FORCE_VALUE; //turn off steering motor
-	  }
-      else if (Brand != 3 && gpsSpeed < 0.1 && Brand != 5)                //Speed < 0.1 and not Fendt
-      {
-        watchdogTimer = WATCHDOG_FORCE_VALUE; //turn off steering motor
-      }   
-	  else          //valid conditions to turn on autosteer
-	  {
-		  watchdogTimer = 0;  //reset watchdog
-	  }
+			guidanceStatus = udpData[7];
 
-      //Bit 10 Tram 
-      tram = udpData[10];
-      
-      //Bit 11
-      relay = udpData[11];
+			//Bit 8,9    set point steer angle * 100 is sent
+			steerAngleSetPoint = ((float)(udpData[8] | ((int8_t)udpData[9]) << 8)) * 0.01; //high low bytes
 
-      //Bit 12
-      relayHi = udpData[12];
-     
-      //----------------------------------------------------------------------------
-      //Serial Send to agopenGPS
-      
-      int16_t sa = (int16_t)(steerAngleActual*100);
-      
-      AOG[5] = (uint8_t)sa;
-      AOG[6] = sa >> 8;
-      
-        //heading         
-        AOG[7] = (uint8_t)9999;
-        AOG[8] = 9999 >> 8;
+		      if (Brand == 8)
+		      {
+		          if (reverse_MT) steerAngleSetPoint *= -1.00;
+		      }
 
-        //roll
-        AOG[9] = (uint8_t)8888;  
-        AOG[10] = 8888 >> 8;       
-      
-      AOG[11] = switchByte;
-      AOG[12] = (uint8_t)pwmDisplay;
-          
-      //checksum
-      int16_t CK_A = 0;
-      for (uint8_t i = 2; i < AOGSize - 1; i++)      
-        CK_A = (CK_A + AOG[i]);
-      
-      AOG[AOGSize - 1] = CK_A;
-      
-      //off to AOG
-      Udp.beginPacket(ipDestination, 9999);
-      Udp.write(AOG, AOGSize);
-      Udp.endPacket();
+			//Serial.println(gpsSpeed); 
 
-      //Steer Data 2 -------------------------------------------------
-        if (aog2Count++ > 2)
-        {
-         //Send fromAutosteer2
-           if ( steerConfig.CurrentSensor) PGN_250[5] = (byte)currentReading;
-           else if ( steerConfig.PressureSensor) PGN_250[5] = (byte)pressureReading;
-           else PGN_250[5] = 0;
+			if ((bitRead(guidanceStatus, 0) == 0) || (steerSwitch == 1))        //AgOpen or Steer switch off
+			{
+				watchdogTimer = WATCHDOG_FORCE_VALUE; //turn off steering motor
+			}
+			else if (Brand != 3 && gpsSpeed < 0.1 && Brand != 5)                //Speed < 0.1 and not Fendt
+			{
+				watchdogTimer = WATCHDOG_FORCE_VALUE; //turn off steering motor
+			}
+			else          //valid conditions to turn on autosteer
+			{
+				watchdogTimer = 0;  //reset watchdog
+			}
 
-           //add the checksum for AOG2
-           CK_A = 0;
-           for (uint8_t i = 2; i < PGN_250_Size; i++)
-           {
-              CK_A = (CK_A + PGN_250[i]);
-           }
-           PGN_250[PGN_250_Size] = CK_A;
+			//Bit 10 Tram 
+			tram = udpData[10];
 
-           Udp.beginPacket(ipDestination, 9999);
-           Udp.write(PGN_250, sizeof(PGN_250));
-           Udp.endPacket();
-           aog2Count = 0;
-         }
+			//Bit 11
+			relay = udpData[11];
 
-      // Stop sending the helloAgIO message
-      helloCounter = 0;
+			//Bit 12
+			relayHi = udpData[12];
 
-      if (blink)
-        digitalWrite(13, HIGH);
-      else digitalWrite(13, LOW);
-      blink = !blink;
+			//----------------------------------------------------------------------------
+			//Serial Send to agopenGPS
 
-      //Serial.println(steerAngleActual); 
-      //--------------------------------------------------------------------------    
-    }
-    
-    else if (udpData[3] == 200) // Hello from AgIO
-    {
-       int16_t sa = (int16_t)(steerAngleActual * 100);
+			int16_t sa = (int16_t)(steerAngleActual * 100);
 
-       helloFromAutoSteer[5] = (uint8_t)sa;
-       helloFromAutoSteer[6] = sa >> 8;
+			AOG[5] = (uint8_t)sa;
+			AOG[6] = sa >> 8;
 
-       helloFromAutoSteer[7] = (uint8_t)helloSteerPosition;
-       helloFromAutoSteer[8] = helloSteerPosition >> 8;
-       helloFromAutoSteer[9] = switchByte;
-       
-       Udp.beginPacket(ipDestination, 9999);
-       Udp.write(helloFromAutoSteer, sizeof(helloFromAutoSteer));
-       Udp.endPacket();
-           
-       if (useBNO08x || useBNO08xRVC)
-       {
-           Udp.beginPacket(ipDestination, 9999);
-           Udp.write(helloFromIMU, sizeof(helloFromIMU));
-           Udp.endPacket();
-       }
+			//heading         
+			AOG[7] = (uint8_t)9999;
+			AOG[8] = 9999 >> 8;
 
-    }
-          
-    //Machine Data
-    else if (udpData[3] == 0xEF)  //239 Machine Data
-    {
-      hydLift = udpData[7];
+			//roll
+			AOG[9] = (uint8_t)8888;
+			AOG[10] = 8888 >> 8;
 
-      //reset for next pgn sentence
-      isHeaderFound = isPGNFound = false;
-      pgn = dataLength = 0;
-    }
+			AOG[11] = switchByte;
+			AOG[12] = (uint8_t)pwmDisplay;
 
-    //Machine Settings
-    else if (udpData[3] == 0xEE) //238 Machine Settings 
-    {         
-      aogConfig.raiseTime = udpData[5];
-      aogConfig.lowerTime = udpData[6];  
-      //aogConfig.enableToolLift = udpData[7]; //This is wrong AgOpen is putting enable in sett,1
-      
-      //set1 
-      uint8_t sett = udpData[8];  //setting0     
-      if (bitRead(sett,0)) aogConfig.isRelayActiveHigh = 1; else aogConfig.isRelayActiveHigh = 0;  
-      if (bitRead(sett,1)) aogConfig.enableToolLift = 1; else aogConfig.enableToolLift = 0;  
+			//checksum
+			int16_t CK_A = 0;
+			for (uint8_t i = 2; i < AOGSize - 1; i++)
+				CK_A = (CK_A + AOG[i]);
 
-      //crc
-      //udpData[13];        //crc
-  
-      //save in EEPROM and restart
-      EEPROM.put(6, aogConfig);
+			AOG[AOGSize - 1] = CK_A;
 
-      //reset for next pgn sentence
-      isHeaderFound = isPGNFound = false;
-      pgn=dataLength=0;
-    }
+			//off to AOG
+			Udp.beginPacket(ipDestination, 9999);
+			Udp.write(AOG, AOGSize);
+			Udp.endPacket();
 
-    //steer settings
-    else if (udpData[3] == 0xFC)  //252, steer settings
-    {      
-      //PID values
-      steerSettings.Kp = udpData[5];   // read Kp from AgOpenGPS
-      
-      steerSettings.highPWM = udpData[6]; // read high pwm
-      
-      steerSettings.lowPWM = udpData[8]; //udpData[7];   // read lowPWM from AgOpenGPS              
-  
-      steerSettings.minPWM = 1; //udpData[8]; //read the minimum amount of PWM for instant on
-      
-      steerSettings.steerSensorCounts = udpData[9]; //sent as setting displayed in AOG
-  
-      steerSettings.wasOffset = (udpData[10]);  //read was zero offset Lo
+			//Steer Data 2 -------------------------------------------------
+			if (aog2Count++ > 2)
+			{
+				//Send fromAutosteer2
+				if (steerConfig.CurrentSensor) PGN_250[5] = (byte)currentReading;
+				else if (steerConfig.PressureSensor) PGN_250[5] = (byte)pressureReading;
+				else PGN_250[5] = 0;
 
-      steerSettings.wasOffset |= (((int8_t)udpData[11]) << 8);  //read was zero offset Hi
+				//add the checksum for AOG2
+				CK_A = 0;
+				for (uint8_t i = 2; i < PGN_250_Size; i++)
+				{
+					CK_A = (CK_A + PGN_250[i]);
+				}
+				PGN_250[PGN_250_Size] = CK_A;
 
-      steerSettings.AckermanFix = (float)udpData[12] * 0.01;  
-      
-      //crc
-      //udpData[13];
-        
-      //store in EEPROM
-      EEPROM.put(10, steerSettings);
+				Udp.beginPacket(ipDestination, 9999);
+				Udp.write(PGN_250, sizeof(PGN_250));
+				Udp.endPacket();
+				aog2Count = 0;
+			}
 
-      //Send Config Via CAN
-      if (Brand == 7) canConfig();
-  
-      // for PWM High to Low interpolator
-      highLowPerDeg = ((float)(steerSettings.highPWM - steerSettings.lowPWM)) / LOW_HIGH_DEGREES;
-    }
+			// Stop sending the helloAgIO message
+			helloCounter = 0;
 
-    else if (udpData[3] == 0xFB)  //251 FB - SteerConfig
-    {        
-      uint8_t sett = udpData[5]; //setting0
-       
-      if (bitRead(sett,0)) steerConfig.InvertWAS = 1; else steerConfig.InvertWAS = 0;
-      if (bitRead(sett,1)) steerConfig.IsRelayActiveHigh = 1; else steerConfig.IsRelayActiveHigh = 0;
-      if (bitRead(sett,2)) steerConfig.MotorDriveDirection = 1; else steerConfig.MotorDriveDirection = 0;
-      if (bitRead(sett,3)) steerConfig.SingleInputWAS = 1; else steerConfig.SingleInputWAS = 0;
-      if (bitRead(sett,4)) steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
-      if (bitRead(sett,5)) steerConfig.SteerSwitch = 1; else steerConfig.SteerSwitch = 0;
-      if (bitRead(sett,6)) steerConfig.SteerButton = 1; else steerConfig.SteerButton = 0;
-      if (bitRead(sett,7)) steerConfig.ShaftEncoder = 1; else steerConfig.ShaftEncoder = 0;
-      
-      steerConfig.PulseCountMax = udpData[6];
+			if (blink)
+				digitalWrite(13, HIGH);
+			else digitalWrite(13, LOW);
+			blink = !blink;
 
-      //was speed
-      //udpData[7]; 
+			//Serial.println(steerAngleActual); 
+			//--------------------------------------------------------------------------    
+		}
 
-      sett = udpData[8]; //setting1 - Danfoss valve etc
-      
-      if (bitRead(sett, 0)) steerConfig.IsDanfoss = 1; else steerConfig.IsDanfoss = 0;
-      if (bitRead(sett, 1)) steerConfig.PressureSensor = 1; else steerConfig.PressureSensor = 0;
-      if (bitRead(sett, 2)) steerConfig.CurrentSensor = 1; else steerConfig.CurrentSensor = 0;
-      if (bitRead(sett, 3)) steerConfig.IsUseY_Axis = 1; else steerConfig.IsUseY_Axis = 0;
+		else if (udpData[3] == 200) // Hello from AgIO
+		{
+			int16_t sa = (int16_t)(steerAngleActual * 100);
 
-      //crc
-      //udpData[13];        
-       
-      EEPROM.put(40, steerConfig);
+			helloFromAutoSteer[5] = (uint8_t)sa;
+			helloFromAutoSteer[6] = sa >> 8;
 
-      //Send Config Via CAN
-      if (Brand == 7) canConfig();
-  
-      //reset for next pgn sentence
-      isHeaderFound = isPGNFound = false;
-      pgn=dataLength=0; 
-       
-    }//end FB
+			helloFromAutoSteer[7] = (uint8_t)helloSteerPosition;
+			helloFromAutoSteer[8] = helloSteerPosition >> 8;
+			helloFromAutoSteer[9] = switchByte;
 
-    else if (udpData[3] == 0xD0)  //Corrected GPS Data
-    {
+			Udp.beginPacket(ipDestination, 9999);
+			Udp.write(helloFromAutoSteer, sizeof(helloFromAutoSteer));
+			Udp.endPacket();
 
-        uint32_t encodedAngle;
-        uint16_t encodedInt16;
+			if (useBNO08x || useBNO08xRVC)
+			{
+				Udp.beginPacket(ipDestination, 9999);
+				Udp.write(helloFromIMU, sizeof(helloFromIMU));
+				Udp.endPacket();
+			}
 
-        encodedAngle = ((uint32_t)(udpData[5] | udpData[6] << 8 | udpData[7] << 16 | udpData[8] << 24));
-        pivotLat = (((double)encodedAngle * 0.0000001) - 210);
+		}
 
-        encodedAngle = ((uint32_t)(udpData[9] | udpData[10] << 8 | udpData[11] << 16 | udpData[12] << 24));
-        pivotLon = (((double)encodedAngle * 0.0000001) - 210);
+		//Machine Data
+		else if (udpData[3] == 0xEF)  //239 Machine Data
+		{
+			hydLift = udpData[7];
 
-        encodedInt16 = ((uint16_t)(udpData[13] | udpData[14] << 8));
-        fixHeading = ((double)encodedInt16 / 128);
+			//reset for next pgn sentence
+			isHeaderFound = isPGNFound = false;
+			pgn = dataLength = 0;
+		}
 
-        encodedInt16 = ((uint16_t)(udpData[15] | udpData[16] << 8));
-        pivotAltitude = ((double)encodedInt16 * 0.01);
+		//Machine Settings
+		else if (udpData[3] == 0xEE) //238 Machine Settings 
+		{
+			aogConfig.raiseTime = udpData[5];
+			aogConfig.lowerTime = udpData[6];
+			//aogConfig.enableToolLift = udpData[7]; //This is wrong AgOpen is putting enable in sett,1
 
-        static int GPS_5hz = 0;
+			//set1 
+			uint8_t sett = udpData[8];  //setting0     
+			if (bitRead(sett, 0)) aogConfig.isRelayActiveHigh = 1; else aogConfig.isRelayActiveHigh = 0;
+			if (bitRead(sett, 1)) aogConfig.enableToolLift = 1; else aogConfig.enableToolLift = 0;
 
-        if (sendGPStoISOBUS)
-        {
-            if (GPS_5hz > 4)
-            {
-                GPS_5hz = 0;
-                sendISOBUS_65267_65256();
-            }
+			//crc
+			//udpData[13];        //crc
 
-            GPS_5hz++;
-        }
+			//save in EEPROM and restart
+			EEPROM.put(6, aogConfig);
 
-    }//end D0
+			//reset for next pgn sentence
+			isHeaderFound = isPGNFound = false;
+			pgn = dataLength = 0;
+		}
 
-    else if (udpData[3] == 201) // subnet change
-    {
-     //make really sure this is the subnet pgn
-     if (udpData[4] == 5 && udpData[5] == 201 && udpData[6] == 201)
-     {
-      networkAddress.ipOne = udpData[7];
-      networkAddress.ipTwo = udpData[8];
-      networkAddress.ipThree = udpData[9];
+		//steer settings
+		else if (udpData[3] == 0xFC)  //252, steer settings
+		{
+			//PID values
+			steerSettings.Kp = udpData[5];   // read Kp from AgOpenGPS
 
-      //save in EEPROM and restart
-      EEPROM.put(60, networkAddress);
-      SCB_AIRCR = 0x05FA0004; //Teensy Reset
-      }
-    }//end 201
+			steerSettings.highPWM = udpData[6]; // read high pwm
 
-    //Who Am I ?
-    else if (udpData[3] == 202)  // subnet scan request
-    {
-     //make really sure this is the reply pgn
-     if (udpData[4] == 3 && udpData[5] == 202 && udpData[6] == 202)
-     {
-      //hello from AgIO
-      uint8_t scanReply[] = { 128, 129, 126, 203, 7,
-      ip[0], ip[1], ip[2], 126, src_ip[0], src_ip[1], src_ip[2], 23 };
+			steerSettings.lowPWM = udpData[8]; //udpData[7];   // read lowPWM from AgOpenGPS              
 
-      //checksum
-      int16_t CK_A = 0;
-      for (uint8_t i = 2; i < sizeof(scanReply) - 1; i++)
-       {
-        CK_A = (CK_A + scanReply[i]);
-       }
-      scanReply[sizeof(scanReply)-1] = CK_A;
+			steerSettings.minPWM = 1; //udpData[8]; //read the minimum amount of PWM for instant on
 
-      static uint8_t ipDest[] = { 255,255,255,255 };
-      uint16_t portDest = 9999; //AOG port that listens
+			steerSettings.steerSensorCounts = udpData[9]; //sent as setting displayed in AOG
 
-      //off to AOG
-       Udp.beginPacket(ipDest, portDest);
-       Udp.write(scanReply, sizeof(scanReply));
-       Udp.endPacket();
+			steerSettings.wasOffset = (udpData[10]);  //read was zero offset Lo
 
-       Serial.print("\r\nAdapter IP: ");
-       Serial.print(src_ip[0]); Serial.print(" . ");
-       Serial.print(src_ip[1]); Serial.print(" . ");
-       Serial.print(src_ip[2]); Serial.print(" . ");
-       Serial.print(src_ip[3]);
+			steerSettings.wasOffset |= (((int8_t)udpData[11]) << 8);  //read was zero offset Hi
 
-       Serial.print("\r\nModule  IP: ");
-       Serial.print(ip[0]); Serial.print(" . ");
-       Serial.print(ip[1]); Serial.print(" . ");
-       Serial.print(ip[2]); Serial.print(" . ");
-       Serial.print(ip[3]); Serial.println();
+			steerSettings.AckermanFix = (float)udpData[12] * 0.01;
 
-       Serial.println(inoVersion); Serial.println();
+			//crc
+			//udpData[13];
 
-       if (Brand == 0) Serial.println("Brand = Claas (Set Via Service Tool)");
-       else if (Brand == 1) Serial.println("Brand = Valtra / Massey (Set Via Service Tool)");
-       else if (Brand == 2) Serial.println("Brand = CaseIH / New Holland (Set Via Service Tool)");
-       else if (Brand == 3) Serial.println("Brand = Fendt SCR,S4,Gen6 (Set Via Service Tool)");
-       else if (Brand == 4) Serial.println("Brand = JCB (Set Via Service Tool)");
-       else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
-       else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
-       else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
-       else Serial.println("No Tractor Brand Set, Set Via Service Tool");
+			//store in EEPROM
+			EEPROM.put(10, steerSettings);
 
-       Serial.println("\r\nGPS Mode:");
-       if (gpsMode == 1) Serial.println("GPS Forwarding @ 115200 (Set Via Service Tool)");
-       else if (gpsMode == 2) Serial.println("GPS Forwarding @ 460800 (Set Via Service Tool)");
-       else if (gpsMode == 3) Serial.println("Panda Mode @ 115200 (Set Via Service Tool)");
-       else if (gpsMode == 4) Serial.println("Panda Mode @ 460800 (Set Via Service Tool)");
-       else Serial.println("No GPS mode selected - Set Via Service Tool");
-       Serial.println(" --------- ");
+			//Send Config Via CAN
+			if (Brand == 7) canConfig();
 
-      }
-     }//end 202
-    
-  } //end if 80 81 7F
+			// for PWM High to Low interpolator
+			highLowPerDeg = ((float)(steerSettings.highPWM - steerSettings.lowPWM)) / LOW_HIGH_DEGREES;
+		}
+
+		else if (udpData[3] == 0xFB)  //251 FB - SteerConfig
+		{
+			uint8_t sett = udpData[5]; //setting0
+
+			if (bitRead(sett, 0)) steerConfig.InvertWAS = 1; else steerConfig.InvertWAS = 0;
+			if (bitRead(sett, 1)) steerConfig.IsRelayActiveHigh = 1; else steerConfig.IsRelayActiveHigh = 0;
+			if (bitRead(sett, 2)) steerConfig.MotorDriveDirection = 1; else steerConfig.MotorDriveDirection = 0;
+			if (bitRead(sett, 3)) steerConfig.SingleInputWAS = 1; else steerConfig.SingleInputWAS = 0;
+			if (bitRead(sett, 4)) steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
+			if (bitRead(sett, 5)) steerConfig.SteerSwitch = 1; else steerConfig.SteerSwitch = 0;
+			if (bitRead(sett, 6)) steerConfig.SteerButton = 1; else steerConfig.SteerButton = 0;
+			if (bitRead(sett, 7)) steerConfig.ShaftEncoder = 1; else steerConfig.ShaftEncoder = 0;
+
+			steerConfig.PulseCountMax = udpData[6];
+
+			//was speed
+			//udpData[7]; 
+
+			sett = udpData[8]; //setting1 - Danfoss valve etc
+
+			if (bitRead(sett, 0)) steerConfig.IsDanfoss = 1; else steerConfig.IsDanfoss = 0;
+			if (bitRead(sett, 1)) steerConfig.PressureSensor = 1; else steerConfig.PressureSensor = 0;
+			if (bitRead(sett, 2)) steerConfig.CurrentSensor = 1; else steerConfig.CurrentSensor = 0;
+			if (bitRead(sett, 3)) steerConfig.IsUseY_Axis = 1; else steerConfig.IsUseY_Axis = 0;
+
+			//crc
+			//udpData[13];        
+
+			EEPROM.put(40, steerConfig);
+
+			//Send Config Via CAN
+			if (Brand == 7) canConfig();
+
+			//reset for next pgn sentence
+			isHeaderFound = isPGNFound = false;
+			pgn = dataLength = 0;
+
+		}//end FB
+
+		else if (udpData[3] == 0xD0)  //Corrected GPS Data
+		{
+
+			uint32_t encodedAngle;
+			uint16_t encodedInt16;
+
+			encodedAngle = ((uint32_t)(udpData[5] | udpData[6] << 8 | udpData[7] << 16 | udpData[8] << 24));
+			pivotLat = (((double)encodedAngle * 0.0000001) - 210);
+
+			encodedAngle = ((uint32_t)(udpData[9] | udpData[10] << 8 | udpData[11] << 16 | udpData[12] << 24));
+			pivotLon = (((double)encodedAngle * 0.0000001) - 210);
+
+			encodedInt16 = ((uint16_t)(udpData[13] | udpData[14] << 8));
+			fixHeading = ((double)encodedInt16 / 128);
+
+			encodedInt16 = ((uint16_t)(udpData[15] | udpData[16] << 8));
+			pivotAltitude = ((double)encodedInt16 * 0.01);
+
+			static int GPS_5hz = 0;
+
+			if (sendGPStoISOBUS)
+			{
+				if (GPS_5hz > 4)
+				{
+					GPS_5hz = 0;
+					sendISOBUS_65267_65256();
+				}
+
+				GPS_5hz++;
+			}
+
+		}//end D0
+
+		else if (udpData[3] == 201) // subnet change
+		{
+			//make really sure this is the subnet pgn
+			if (udpData[4] == 5 && udpData[5] == 201 && udpData[6] == 201)
+			{
+				networkAddress.ipOne = udpData[7];
+				networkAddress.ipTwo = udpData[8];
+				networkAddress.ipThree = udpData[9];
+
+				//save in EEPROM and restart
+				EEPROM.put(60, networkAddress);
+				SCB_AIRCR = 0x05FA0004; //Teensy Reset
+			}
+		}//end 201
+
+		//Who Am I ?
+		else if (udpData[3] == 202)  // subnet scan request
+		{
+			//make really sure this is the reply pgn
+			if (udpData[4] == 3 && udpData[5] == 202 && udpData[6] == 202)
+			{
+				//hello from AgIO
+				uint8_t scanReply[] = { 128, 129, 126, 203, 7,
+				ip[0], ip[1], ip[2], 126, src_ip[0], src_ip[1], src_ip[2], 23 };
+
+				//checksum
+				int16_t CK_A = 0;
+				for (uint8_t i = 2; i < sizeof(scanReply) - 1; i++)
+				{
+					CK_A = (CK_A + scanReply[i]);
+				}
+				scanReply[sizeof(scanReply) - 1] = CK_A;
+
+				static uint8_t ipDest[] = { 255,255,255,255 };
+				uint16_t portDest = 9999; //AOG port that listens
+
+				//off to AOG
+				Udp.beginPacket(ipDest, portDest);
+				Udp.write(scanReply, sizeof(scanReply));
+				Udp.endPacket();
+
+				Serial.print("\r\nAdapter IP: ");
+				Serial.print(src_ip[0]); Serial.print(" . ");
+				Serial.print(src_ip[1]); Serial.print(" . ");
+				Serial.print(src_ip[2]); Serial.print(" . ");
+				Serial.print(src_ip[3]);
+
+				Serial.print("\r\nModule  IP: ");
+				Serial.print(ip[0]); Serial.print(" . ");
+				Serial.print(ip[1]); Serial.print(" . ");
+				Serial.print(ip[2]); Serial.print(" . ");
+				Serial.print(ip[3]); Serial.println();
+
+				Serial.println(inoVersion); Serial.println();
+
+				if (Brand == 0) Serial.println("Brand = Claas (Set Via Service Tool)");
+				else if (Brand == 1) Serial.println("Brand = Valtra / Massey (Set Via Service Tool)");
+				else if (Brand == 2) Serial.println("Brand = CaseIH / New Holland (Set Via Service Tool)");
+				else if (Brand == 3) Serial.println("Brand = Fendt SCR,S4,Gen6 (Set Via Service Tool)");
+				else if (Brand == 4) Serial.println("Brand = JCB (Set Via Service Tool)");
+				else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
+				else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
+				else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
+       			else if (Brand == 8) Serial.println("Brand = Cat MT (Set Via Service Tool)");
+				else Serial.println("No Tractor Brand Set, Set Via Service Tool");
+
+				Serial.println("\r\nGPS Mode:");
+				if (gpsMode == 1) Serial.println("GPS Forwarding @ 115200 (Set Via Service Tool)");
+				else if (gpsMode == 2) Serial.println("GPS Forwarding @ 460800 (Set Via Service Tool)");
+				else if (gpsMode == 3) Serial.println("Panda Mode @ 115200 (Set Via Service Tool)");
+				else if (gpsMode == 4) Serial.println("Panda Mode @ 460800 (Set Via Service Tool)");
+				else Serial.println("No GPS mode selected - Set Via Service Tool");
+				Serial.println(" --------- ");
+
+			}
+		}//end 202
+
+	} //end if 80 81 7F
 
 } //end udp callback
 
 
 //ISR Steering Wheel Encoder
 
-  void EncoderFunc()
-  {        
-     if (encEnable) 
-     {
-        pulseCount++; 
-        encEnable = false;
-     }            
-  }
+void EncoderFunc()
+{
+	if (encEnable)
+	{
+		pulseCount++;
+		encEnable = false;
+	}
+}
 
 //Hitch Control------------------------------------------------------------
 void SetRelaysFendt(void)
 {
-  if (goDown)   liftGo();   //Lift Go button if pressed - CAN Page
-  if (endDown)   liftEnd(); //Lift End button if pressed - CAN Page
+	if (goDown)   liftGo();   //Lift Go button if pressed - CAN Page
+	if (endDown)   liftEnd(); //Lift End button if pressed - CAN Page
 
-//If Invert Relays is selected in hitch settings, Section 1 is used as trigger.
-  if (aogConfig.isRelayActiveHigh == 1){
-    bitState = (bitRead(relay, 0));
-  }
-//If not selected hitch command is used on headland used as Trigger  
-  else{
-    if (hydLift == 1) bitState = 1;
-    if (hydLift == 2) bitState = 0;    
-  }
-//Only if tool lift is enabled AgOpen will press headland buttions via CAN
-if (aogConfig.enableToolLift == 1){
-  if (bitState  && !bitStateOld) pressGo(); //Press Go button - CAN Page
-  if (!bitState && bitStateOld) pressEnd(); //Press End button - CAN Page
-}
+	//If Invert Relays is selected in hitch settings, Section 1 is used as trigger.
+	if (aogConfig.isRelayActiveHigh == 1) {
+		bitState = (bitRead(relay, 0));
+	}
+	//If not selected hitch command is used on headland used as Trigger  
+	else {
+		if (hydLift == 1) bitState = 1;
+		if (hydLift == 2) bitState = 0;
+	}
+	//Only if tool lift is enabled AgOpen will press headland buttions via CAN
+	if (aogConfig.enableToolLift == 1) {
+		if (bitState && !bitStateOld) pressGo(); //Press Go button - CAN Page
+		if (!bitState && bitStateOld) pressEnd(); //Press End button - CAN Page
+	}
 
-  bitStateOld = bitState;
+	bitStateOld = bitState;
 
 }
 
 void SetRelaysClaas(void)
 {
-//If Invert Relays is selected in hitch settings, Section 1 is used as trigger.  
-if (aogConfig.isRelayActiveHigh == 1){
-    bitState = (bitRead(relay, 0));
-  }
-//If not selected hitch command is used on headland used as Trigger  
-  else{
-    if (hydLift == 1) bitState = 1;
-    if (hydLift == 2) bitState = 0;    
-  }
-//Only if tool lift is enabled AgOpen will press headland buttions via CAN
-if (aogConfig.enableToolLift == 1){
-  if (bitState  && !bitStateOld) pressCSM1(); //Press Go button - CAN Page
-  if (!bitState && bitStateOld) pressCSM2(); //Press End button - CAN Page
-}
+	//If Invert Relays is selected in hitch settings, Section 1 is used as trigger.  
+	if (aogConfig.isRelayActiveHigh == 1) {
+		bitState = (bitRead(relay, 0));
+	}
+	//If not selected hitch command is used on headland used as Trigger  
+	else {
+		if (hydLift == 1) bitState = 1;
+		if (hydLift == 2) bitState = 0;
+	}
+	//Only if tool lift is enabled AgOpen will press headland buttions via CAN
+	if (aogConfig.enableToolLift == 1) {
+		if (bitState && !bitStateOld) pressCSM1(); //Press Go button - CAN Page
+		if (!bitState && bitStateOld) pressCSM2(); //Press End button - CAN Page
+	}
 
-  bitStateOld = bitState;
+	bitStateOld = bitState;
 }
 
 //Rob Tillaart, https://github.com/RobTillaart/MultiMap
 template<typename T>
 T multiMap(T value, T* _in, T* _out, uint8_t size)
 {
-    // take care the value is within range
-    // value = constrain(value, _in[0], _in[size-1]);
-    if (value <= _in[0]) return _out[0];
-    if (value >= _in[size - 1]) return _out[size - 1];
+	// take care the value is within range
+	// value = constrain(value, _in[0], _in[size-1]);
+	if (value <= _in[0]) return _out[0];
+	if (value >= _in[size - 1]) return _out[size - 1];
 
-    // search right interval
-    uint8_t pos = 1;  // _in[0] already tested
-    while (value > _in[pos]) pos++;
+	// search right interval
+	uint8_t pos = 1;  // _in[0] already tested
+	while (value > _in[pos]) pos++;
 
-    // this will handle all exact "points" in the _in array
-    if (value == _in[pos]) return _out[pos];
+	// this will handle all exact "points" in the _in array
+	if (value == _in[pos]) return _out[pos];
 
-    // interpolate in the right segment for the rest
-    return (value - _in[pos - 1]) * (_out[pos] - _out[pos - 1]) / (_in[pos] - _in[pos - 1]) + _out[pos - 1];
+	// interpolate in the right segment for the rest
+	return (value - _in[pos - 1]) * (_out[pos] - _out[pos - 1]) / (_in[pos] - _in[pos - 1]) + _out[pos - 1];
 }
