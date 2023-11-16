@@ -173,6 +173,8 @@ uint8_t Brand = 1;              //Variable to set brand via serial monitor.
 uint8_t gpsMode = 1;            //Variable to set GPS mode via serial monitor.
 uint8_t CANBUS_ModuleID = 0x1C; //Used for the Module CAN ID
 
+bool reverse_MT = 0;
+
 uint32_t Time;                  //Time Arduino has been running
 uint32_t relayTime;             //Time to keep "Button Pressed" from CAN Message
 boolean engageCAN = 0;          //Variable for Engage from CAN
