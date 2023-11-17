@@ -26,7 +26,7 @@ void CAN_setup(void) {
 	}
 	if (Brand == 1) {
 		V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //Valtra Curve Data & Valve State Message
-		V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message
+		V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message // possibly ID 00 instead of 32
 		V_Bus.setFIFOFilter(2, 0x18EF1CFC, EXT);  //Mccormick Engage Message
 		CANBUS_ModuleID = 0x1C;
 	}
@@ -382,7 +382,7 @@ void VBus_Receive()
 
 			//**Engage Message**
 			if (VBusReceiveData.id == 0x18EF1C32 || VBusReceiveData.id == 0x18EF1CFC) // Massey/Valtra or McCormick
-				// might be 18EF1C13 for actual-valtra
+				// might be 18EF1C13 for actual-valtra or 18EF1C00 for massey
 			{
 				if ((VBusReceiveData.buf[0]) == 15 && (VBusReceiveData.buf[1]) == 96 && (VBusReceiveData.buf[2]) == 1)
 				{
