@@ -18,7 +18,7 @@ void j1939_decode(long ID, unsigned long* PGN, byte* priority, byte* src_addr, b
 	*src_addr = (int)ID;
 
 	/* decode dest_addr if a peer to peer message */
-	if ((*PGN > 0 && *PGN <= 0xEFFF) || (*PGN > 0x10000 && *PGN <= 0x1EFFF)) 
+	if ((*PGN > 0 && *PGN <= 0xEFFF) || (*PGN > 0x10000 && *PGN <= 0x1EFFF))
 	{
 		*dest_addr = (int)(*PGN & 0xFF);
 		*PGN = *PGN & 0x01FF00;
@@ -42,18 +42,26 @@ long j1939_encode(unsigned long pgn, byte priority, byte src_addr, byte dest_add
 	return id;
 }
 
-void sendISOBUS_65267_65256() 
+void sendISOBUS_65267_65256(double lat, double lon)
 {
+	Serial.print("Received lat: "); Serial.print(lat , 8);
+	Serial.print("  lon: "); Serial.println(lon, 8);
+
+	int32_t scaledLat = (int32_t)(lat * 10000); // Scale latitude to 1/10,000th of a degree
+	int32_t scaledLon = (int32_t)(lon * 10000); // Scale longitude to 1/10,000th of a degree
+
 	CANFrame msg;
 	msg.set_extended(true);
 	msg.set_length(8);
 
 	//GPS position, pgn 65267, Pivot Lat/Lon
 	msg.set_id(j1939_encode(65267, 6, CANBUS_ModuleID, 255));
-	msg.get_data()->uint32[0] = (pivotLat + 210.0) * 10000000;
-	msg.get_data()->uint32[1] = (pivotLon + 210.0) * 10000000;
-	ISO_Bus.write(msg);
+	//msg.get_data()->uint32[0] = (pivotLat + 210.0) * 10000000;
+	//msg.get_data()->uint32[1] = (pivotLon + 210.0) * 10000000;
+	msg.get_data()->uint32[0] = scaledLat;
+	msg.get_data()->uint32[1] = scaledLon;
 
+	ISO_Bus.write(msg);
 	//Vehicle direction & speed, pgn 65256
 	msg.set_id(j1939_encode(65256, 6, CANBUS_ModuleID, 255));
 	msg.get_data()->uint16[0] = fixHeading * 128;			//Heading degress
@@ -61,10 +69,9 @@ void sendISOBUS_65267_65256()
 	msg.get_data()->uint16[2] = 200 * 128;					//Pitch zero
 	msg.get_data()->uint16[3] = (pivotAltitude + 2500) * 8;	//Altitude meters - Only 12cm resolution ( pivotAltitude is 1cm resolution)
 	ISO_Bus.write(msg);
-
 }
 
-void sendISOBUS_65254() 
+void sendISOBUS_65254()
 {
 	CANFrame msg1;
 	msg1.set_extended(true);
@@ -77,7 +84,7 @@ void sendISOBUS_65254()
 
 }
 
-void sendISOBUS_129029() 
+void sendISOBUS_129029()
 {
 	Update_N2K_129029_Buffer();
 
@@ -177,7 +184,7 @@ void sendISOBUS_129029()
 
 	ISO_Bus.write(n2k_fastPackets);
 
-	if(frameCount++ > 7) frameCount = 0;	//We can only use 3 bits as the frame counter
+	if (frameCount++ > 7) frameCount = 0;	//We can only use 3 bits as the frame counter
 }
 
 void Update_N2K_129029_Buffer()
@@ -207,7 +214,7 @@ void Update_N2K_129029_Buffer()
 
 	//8 byte double Latitude
 	tempInt64 = pivotLat * 10000000000000000;
-	memcpy(&tempDouble, &tempInt64,8);
+	memcpy(&tempDouble, &tempInt64, 8);
 	N2K_129029_Data[7] = tempDouble[0];
 	N2K_129029_Data[8] = tempDouble[1];
 	N2K_129029_Data[9] = tempDouble[2];
@@ -268,7 +275,7 @@ void Update_N2K_129029_Buffer()
 	N2K_129029_Data[39] = tempFloat[1];
 	N2K_129029_Data[40] = tempFloat[2];
 	N2K_129029_Data[41] = tempFloat[3];
-	
+
 	// RTK age
 	tempInt16 = rtkAgeGGA * 100;
 	memcpy(&tempTwoByte, &tempInt16, 2);
