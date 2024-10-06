@@ -47,8 +47,8 @@ void sendISOBUS_65267_65256(double lat, double lon)
 	Serial.print("Received lat: "); Serial.print(lat , 8);
 	Serial.print("  lon: "); Serial.println(lon, 8);
 
-	int32_t scaledLat = (int32_t)(lat * 10000); // Scale latitude to 1/10,000th of a degree
-	int32_t scaledLon = (int32_t)(lon * 10000); // Scale longitude to 1/10,000th of a degree
+	int32_t scaledLat = (int32_t)((lat + 210) * 10000000); // Scale latitude to 1/10,000th of a degree
+	int32_t scaledLon = (int32_t)((lon + 210) * 10000000); // Scale longitude to 1/10,000th of a degree
 
 	CANFrame msg;
 	msg.set_extended(true);

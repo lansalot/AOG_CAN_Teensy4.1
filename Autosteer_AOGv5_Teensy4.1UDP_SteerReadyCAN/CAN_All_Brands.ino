@@ -439,6 +439,7 @@ void VBus_Receive()
 					relayTime = ((millis() + 1000));
 				}
 			}
+
 			if (VBusReceiveData.id == 0x18FF8306)//Mccormick 2 engage message TEST
 			{
 				if ((VBusReceiveData.buf[0]) == 1 && (VBusReceiveData.buf[1]) == 0 && (VBusReceiveData.buf[5]) == 211)
@@ -449,8 +450,6 @@ void VBus_Receive()
 					relayTime = ((millis() + 1000));
 				}
 			}
-
-
 
 			if (VBusReceiveData.id == 0x18EF1C00)//MF engage message
 			{
@@ -726,7 +725,7 @@ void K_Receive()
 		if (Brand == 1) { // Massey Ferguson Headland Engage button
 			if (KBusReceiveData.id == 0x45a) {
 				if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[1] & 0x04) {
-			//if (KBusReceiveData.id == 0xcff2621) {
+			//if (KBusReceiveData.id == 0xcff2621) { // S-Models
 				//if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[3] & 0x04) {
 					lastCANCommand = millis();
 					if (intendToSteer == 0) {
