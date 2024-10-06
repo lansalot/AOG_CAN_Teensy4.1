@@ -134,7 +134,7 @@ if (Brand == 1){
 		Serial.println("filter engaged");
 	}
 	if (Brand == 1) {
-		// K_Bus.setFIFOFilter(0, 0x45a, STD);  //Massey Ferguson joystick
+		//K_Bus.setFIFOFilter(0, 0x45a, STD);  //Massey Ferguson joystick
 		K_Bus.setFIFOFilter(0, 0x210, STD);  //Massey Ferguson 7720 headland mgmt
 		// you are overriding the filter here, Andy... sigh
 		K_Bus.setFIFOFilter(0, 0xcff2621, EXT);  //Massey Ferguson 7720 headland mgmt
@@ -724,10 +724,10 @@ void K_Receive()
 			}
 		}
 		if (Brand == 1) { // Massey Ferguson Headland Engage button
-			/*if (KBusReceiveData.id == 0x45a) {
-				if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[1] & 0x04) {*/
-			if (KBusReceiveData.id == 0xcff2621) {
-				if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[3] & 0x04) {
+			if (KBusReceiveData.id == 0x45a) {
+				if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[1] & 0x04) {
+			//if (KBusReceiveData.id == 0xcff2621) {
+				//if (millis() - lastCANCommand > 1000 && KBusReceiveData.buf[3] & 0x04) {
 					lastCANCommand = millis();
 					if (intendToSteer == 0) {
 						Time = millis();
