@@ -8,16 +8,7 @@
 
 //----------------------------------------------------------
 
-//Tony / @Commonrail Version 05.03.2023
-//30.06.2022  - Ryan / @RGM Added JCB CAN engage message
-//02.07.2022  - Added Claas headland from Ryan
-//            - Fix up pilot valve output for Ryan Claas wiring mod 
-//31.12.2022  - Add Panda mode & GPS options, set via serial monitor service tool
-//29.01.2023  - Add WAS mapping option to fix wheel angle to turning radius conversion
-//            - Add Danfoss PVED-CL setup options (Claas mods mainly)
-//            - Add CaseIH/New Holland engage from CAN options
-//05.03.2023  - Add GPS to ISOBUS option
-//            - Add RVC BNO08x option and remove CMPS14 option
+//Tony / @Commonrail Version 18.02.2024
 
 // GPS forwarding mode: (Serial Bynav etc)
 // - GPS to Serial3, Forward to AgIO via UDP
@@ -54,7 +45,7 @@
 
 //----------------------------------------------------------
 
-String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 19.08.2023");
+String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 04.05.2024");
 
   ////////////////// User Settings /////////////////////////  
 
@@ -518,7 +509,8 @@ boolean intendToSteer = 0;          //Do We Intend to Steer?
       else if (Brand == 5) Serial.println("Brand = FendtOne (Set Via Service Tool)");
       else if (Brand == 6) Serial.println("Brand = Lindner (Set Via Service Tool)");
       else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
-      else if (Brand == 8) Serial.println("Brand = Cat MT (Set Via Service Tool)");
+      else if (Brand == 8) Serial.println("Brand = Cat MT Late (Set Via Service Tool)");
+      else if (Brand == 9) Serial.println("Brand = Cat MT Early (Set Via Service Tool)");
       else Serial.println("No Tractor Brand Set, Set Via Service Tool");
 
       Serial.println("\r\nGPS Mode:");
@@ -555,116 +547,90 @@ boolean intendToSteer = 0;          //Do We Intend to Steer?
   void loop()
   {
 
-    currentTime = millis();
+        currentTime = millis();
 
-    //--Main Timed Loop----------------------------------   
-    if (currentTime - lastTime >= LOOP_TIME)
-    {
-      lastTime = currentTime;
+        //--Main Timed Loop----------------------------------   
+        if (currentTime - lastTime >= LOOP_TIME)
+        {
+          lastTime = currentTime;
   
-      //reset debounce
-      encEnable = true;
+          //reset debounce
+          encEnable = true;
       
-      //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-      if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
+          //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
+          if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
       
-      //read all the switches
+          //read all the switches
 
-      //CANBus     
-      if (steeringValveReady == 20 || steeringValveReady == 16) 
-      {
-        digitalWrite(ledPin, HIGH);
-      } 
-      else 
-      {
-        digitalWrite(ledPin, LOW);
-      }
+          //CANBus     
+          if (steeringValveReady == 20 || steeringValveReady == 16) 
+          {
+            digitalWrite(ledPin, HIGH);
+          } 
+          else 
+          {
+            digitalWrite(ledPin, LOW);
+          }
   
-      workSwitch = digitalRead(WORKSW_PIN);     // read work switch (PCB pin)
-      if (workCAN == 1) workSwitch = 0;         // If CAN workswitch is on, set workSwitch ON
+          workSwitch = digitalRead(WORKSW_PIN);     // read work switch (PCB pin)
+          if (workCAN == 1) workSwitch = 0;         // If CAN workswitch is on, set workSwitch ON
       
-      if (steerConfig.SteerSwitch == 1)         //steer switch on - off
-      {
-        steerSwitch = digitalRead(STEERSW_PIN); //read auto steer enable switch open = 0n closed = Off
-      }
-      else if(steerConfig.SteerButton == 1)     //steer Button momentary
-      {
-        reading = digitalRead(STEERSW_PIN); 
+          //Engage steering via 1 PCB Button or 2 Tablet or 3 CANBUS
 
-        //CAN
-        if (engageCAN == 1) reading = 0;              //CAN Engage is ON (Button is Pressed)
-              
-            if (reading == LOW && previous == HIGH) 
-            {
-                if (currentState == 1)
-                {
-                if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
-                if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer 
-                currentState = 0;
-                steerSwitch = 0;
-                }
-                else
-                {
-                currentState = 1;
-                steerSwitch = 1;
-                }
-            }      
-            previous = reading;
-        
-           //--------CAN CutOut--------------------------
-           if (steeringValveReady != 20 && steeringValveReady != 16)
-           {            
+          // 1 PCB Button pressed?
+          reading = digitalRead(STEERSW_PIN);
+
+          // 2 Has tablet button been pressed?
+          if (previousStatus != guidanceStatus)
+          {
+              if (guidanceStatus == 1)    //Must have changed Off >> On
+              {
+                  Time = millis();
+                  digitalWrite(engageLED, HIGH);
+
+                  engageCAN = 1;
+                  relayTime = ((millis() + 1000));
+
+                  currentState = 1;
+              }
+              else
+              {
+                  currentState = 1;
+                  steerSwitch = 1;
+              }
+
+              previousStatus = guidanceStatus;
+          }
+
+          // 3 Has CANBUS button been pressed?
+          if (engageCAN == 1) reading = 0;              //CAN Engage is ON (Button is Pressed)
+
+          // Arduino software switch code
+          if (reading == LOW && previous == HIGH)
+          {
+              if (currentState == 1)
+              {
+                  if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
+                  if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer 
+                  currentState = 0;
+                  steerSwitch = 0;
+              }
+              else
+              {
+                  currentState = 1;
+                  steerSwitch = 1;
+              }
+          }
+          previous = reading;
+
+          //--------CAN CutOut--------------------------
+          if (steeringValveReady != 20 && steeringValveReady != 16)
+          {
               steerSwitch = 1; // reset values like it turned off
               currentState = 1;
               previous = HIGH;
-           }
-      }
-      
-        else     // No steer switch and no steer button 
-        {
-        
-            if (steeringValveReady != 20 && steeringValveReady != 16)
-            {            
-                steerSwitch = 1; // reset values like it turned off
-                currentState = 1;
-                previous = HIGH;
-            }
-      
-            if (previousStatus != guidanceStatus) 
-            {
-                if (guidanceStatus == 1 && steerSwitch == 1 && previousStatus == 0)
-                {
-                if (Brand == 3) steeringValveReady = 16;  //Fendt Valve Ready To Steer 
-                if (Brand == 5) steeringValveReady = 16;  //FendtOne Valve Ready To Steer  
-                steerSwitch = 0;
-                }
-                else
-                {
-                steerSwitch = 1;
-                }
-            }      
-            previousStatus = guidanceStatus;
-        }
-      
-          if (steerConfig.ShaftEncoder && pulseCount >= steerConfig.PulseCountMax) 
-          {
-            steerSwitch = 1; // reset values like it turned off
-            currentState = 1;
-            previous = 0;
-          }     
-
-          // Current sensor?
-          if (steerConfig.CurrentSensor)
-          {
- 
           }
 
-          // Pressure sensor?
-          if (steerConfig.PressureSensor)
-          {
-
-          }
-      
           remoteSwitch = digitalRead(REMOTE_PIN); //read auto steer enable switch open = 0n closed = Off
           switchByte = 0;
           switchByte |= (remoteSwitch << 2);  //put remote in bit 2
@@ -749,7 +715,7 @@ boolean intendToSteer = 0;          //Do We Intend to Steer?
           Udp.endPacket();
           helloCounter = 0;
           }
-    } //end of main timed loop
+        } //end of main timed loop
 
     //This runs continuously, outside of the timed loop, keeps checking for new udpData, turn sense, CAN data etc
     //delay(1); 
@@ -847,7 +813,7 @@ void udpSteerRecv(int sizeToRead)
       //Bit 8,9    set point steer angle * 100 is sent
       steerAngleSetPoint = ((float)(udpData[8] | ((int8_t)udpData[9]) << 8))*0.01; //high low bytes
       
-      if (Brand == 8)
+      if (Brand == 8 || Brand == 9)
       {
           if (reverse_MT) steerAngleSetPoint *= -1.00;
       }
