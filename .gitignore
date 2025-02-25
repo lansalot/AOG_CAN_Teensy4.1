@@ -16,6 +16,7 @@
 *.db-wal
 *.opendb
 Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/__vm/.Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN.vsarduino.h
-/Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/.vs/slnx.sqlite
-/Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/obj/ARM/Debug
-/Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/.vs
+Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/.vs/slnx.sqlite
+Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/obj/ARM/Debug
+Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/.vs
+Autosteer_AOGv5_Teensy4.1UDP_SteerReadyCAN/build/
