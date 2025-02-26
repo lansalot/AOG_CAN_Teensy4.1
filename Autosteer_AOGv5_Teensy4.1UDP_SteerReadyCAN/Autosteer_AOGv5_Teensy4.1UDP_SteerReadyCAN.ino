@@ -169,7 +169,7 @@ FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> V_Bus;    //Steering Valve Bus
 	#define engageLED 24    //Option for LED, to see if Engage message is recived.
 #endif
 
-uint8_t Brand = 1;              //Variable to set brand via serial monitor.
+uint8_t Brand = 2;              //Variable to set brand via serial monitor.
 uint8_t gpsMode = 1;            //Variable to set GPS mode via serial monitor.
 uint8_t CANBUS_ModuleID = 0x1C; //Used for the Module CAN ID
 
@@ -182,7 +182,7 @@ boolean workCAN = 0;            //Variable for Workswitch from CAN
 uint8_t ISORearHitch = 250;     //Variable for hitch height from ISOBUS (0-250 *0.4 = 0-100%)
 uint8_t KBUSRearHitch = 250;    //Variable for hitch height from KBUS (0-250 *0.4 = 0-100%) - CaseIH tractor bus
 boolean Service = 0;            //Variable for Danfoss Service Tool Mode
-boolean ShowCANData = 0;        //Variable for Showing CAN Data
+boolean ShowCANData = 1;        //Variable for Showing CAN Data
 
 boolean goDown = false, endDown = false , bitState = false, bitStateOld = false;  //CAN Hitch Control
 byte hydLift = 0;

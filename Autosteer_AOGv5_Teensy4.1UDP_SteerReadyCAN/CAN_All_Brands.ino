@@ -82,7 +82,7 @@ void CAN_setup(void)
 		else if (Brand == 1)
 			msgV.id = 0x18EEFF1C; // Massey, Valtra, ETC
 		else if (Brand == 2)
-			msgV.id = 0x18EEFFAA; // Case, Hew Holland
+			msgV.id = 0x18EEFFAA; // Case, Hew Holland AFS TEST AW AW AW
 		else if (Brand == 3)
 			msgV.id = 0x18EEFF2C; // Fendt
 		else if (Brand == 4)
@@ -109,6 +109,7 @@ void CAN_setup(void)
 	}
 	delay(500);
 
+#pragma region ISOBUS
 	// ISO_Bus is CAN-2
 	ISO_Bus.begin();
 	ISO_Bus.setBaudRate(250000);
@@ -148,12 +149,13 @@ void CAN_setup(void)
 
 	delay(500);
 
+
 	// K_Bus is CAN-1 and is the Main Tractor Bus
 	K_Bus.begin();
 	if (Brand == 5)
 		K_Bus.setBaudRate(500000);
 	else
-		K_Bus.setBaudRate(250000);
+		K_Bus.setBaudRate(500000); // Case AFS test AW
 	K_Bus.enableFIFO();
 	K_Bus.setFIFOFilter(REJECT_ALL);
 	// Put filters into here to let them through (All blocked by above line)
@@ -177,6 +179,7 @@ void CAN_setup(void)
 	}
 	delay(300);
 
+#pragma endregion
 } // End CAN SETUP
 
 //---Send V_Bus message
@@ -222,7 +225,7 @@ void VBus_Send()
 	}
 	else if (Brand == 2)
 	{
-		VBusSendData.id = 0x0CAD08AA;
+		VBusSendData.id = 0x0CADF01C; // valentin suggestion was 0x0CAD08AA before;
 		VBusSendData.flags.extended = true;
 		VBusSendData.len = 8;
 		VBusSendData.buf[0] = lowByte(setCurve);
@@ -473,7 +476,7 @@ void VBus_Receive()
 		if (Brand == 2)
 		{
 			//**Current Wheel Angle & Valve State**
-			if (VBusReceiveData.id == 0x0CACAA08)
+			if (VBusReceiveData.id == 0x0cACFFF0)
 			{
 				estCurve = ((VBusReceiveData.buf[1] << 8) + VBusReceiveData.buf[0]); // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve
 				steeringValveReady = (VBusReceiveData.buf[2]);
@@ -630,25 +633,169 @@ void VBus_Receive()
 		{
 			Serial.print(Time);
 			Serial.print(", V-Bus");
-			Serial.print(", MB: ");
-			Serial.print(VBusReceiveData.mb);
 			Serial.print(", ID: 0x");
-			Serial.print(VBusReceiveData.id, HEX);
-			Serial.print(", EXT: ");
-			Serial.print(VBusReceiveData.flags.extended);
-			Serial.print(", LEN: ");
-			Serial.print(VBusReceiveData.len);
 			Serial.print(", DATA: ");
 			for (uint8_t i = 0; i < 8; i++)
 			{
-				Serial.print(VBusReceiveData.buf[i]);
+				Serial.print(VBusReceiveData.buf[i], HEX);
 				Serial.print(", ");
 			}
-			if (VBusReceiveData.id == 0x0CACAA08) {
-				Serial.print(" estCurve: ");
+			if (VBusReceiveData.id == 0x0CACFFF0) {
+				Serial.print(" crv: ");
 				Serial.print(estCurve);
-				Serial.print(" steeringValveReady: ");
-				Serial.print(steeringValveReady);
+				Serial.print(" mlck: ");
+				switch (steeringValveReady & 0b00000011) {
+				case 0b00:
+					Serial.print("Not active");
+					break;
+				case 0b01:
+					Serial.print("Active");
+					break;
+				case 0b10:
+					Serial.print("Error indication");
+					break;
+				case 0b11:
+					Serial.print("Not available");
+					break;
+				}
+				Serial.print(" gReady: ");
+				Serial.print((steeringValveReady & 0b1100) >> 2);
+				Serial.print(" sInpStat: ");
+				Serial.print((steeringValveReady & 0b110000) >> 4);
+				Serial.print(" rReset: ");
+				switch ((steeringValveReady & 0b11000000) >> 6) {
+				case 0b00:
+					Serial.print("Reset not required");
+					break;
+				case 0b01:
+					Serial.print("Reset required");
+					break;
+				case 0b10:
+					Serial.print("Error indication");
+					break;
+				case 0b11:
+					Serial.print("Not available");
+					break;
+				}
+				Serial.print(" gLimitStat: ");
+				switch (VBusReceiveData.buf[3] & 0b00000111) {
+					{
+				case 0b000:
+					Serial.print("Not limited");
+					break;
+				case 0b001:
+					Serial.print("Operator limited/controlled (request cannot be implemented)");
+					break;
+				case 0b010:
+					Serial.print("Limited high (only lower command values result in a change)");
+					break;
+				case 0b011:
+					Serial.print("Limited low (only higher command values result in a change)");
+					break;
+				case 0b100:
+					Serial.print("Reserved");
+					break;
+				case 0b101:
+					Serial.print("Reserved");
+					break;
+				case 0b110:
+					Serial.print("Non-recoverable fault");
+					break;
+				case 0b111:
+					Serial.print("Not available (parameter not supported)");
+					break;
+				default:
+					Serial.print("Unknown status");
+					break;
+					}
+				}
+				Serial.print(" exitReason: ");
+				switch (VBusReceiveData.buf[4] & 0b00111111) {
+				case 0b000000:  // 0
+					Serial.print("No reason/all clear");
+					break;
+				case 0b000001:  // 1
+					Serial.print("Required level of operator presence/awareness not detected");
+					break;
+				case 0b000010:  // 2
+					Serial.print("Implement released control of function");
+					break;
+				case 0b000011:  // 3
+					Serial.print("Operator override of function");
+					break;
+				case 0b000100:  // 4
+					Serial.print("Operator control not in valid position");
+					break;
+				case 0b000101:  // 5
+					Serial.print("Remote command timeout");
+					break;
+				case 0b000110:  // 6
+					Serial.print("Remote command out of range/invalid");
+					break;
+				case 0b000111:  // 7
+					Serial.print("Function not calibrated");
+					break;
+				case 0b001000:  // 8
+					Serial.print("Operator control fault");
+					break;
+				case 0b001001:  // 9
+					Serial.print("Function fault");
+					break;
+				case 0b001010 ... 0b010011:  // 10 to 19
+					Serial.print("Reserved");
+					break;
+				case 0b010100:  // 20
+					Serial.print("Hydraulic oil level too low");
+					break;
+				case 0b010101:  // 21
+					Serial.print("Hydraulic oil temperature too low");
+					break;
+				case 0b010110:  // 22
+					Serial.print("Vehicle transmission gear does not allow remote commands (park, etc.)");
+					break;
+				case 0b010111:  // 23
+					Serial.print("Vehicle speed too low");
+					break;
+				case 0b011000:  // 24
+					Serial.print("Vehicle speed too high");
+					break;
+				case 0b011001:  // 25
+					Serial.print("Alternate guidance system active");
+					break;
+				case 0b011010:  // 26
+					Serial.print("Control unit in diagnostic mode");
+					break;
+				case 0b011011 ... 0b110000:  // 27 to 48
+					Serial.print("Reserved");
+					break;
+				case 0b110001 ... 0b111101:  // 49 to 61
+					Serial.print("Manufacturer specific");
+					break;
+				case 0b111110:  // 62
+					Serial.print("Error");
+					break;
+				case 0b111111:  // 63
+					Serial.print("Not available (parameter not supported)");
+					break;
+				default:
+					Serial.print("Unknown error code");
+					break;
+				}
+				Serial.print(" swStat: ");
+				switch ((VBusReceiveData.buf[4] & 0b11000000) >> 6) {
+				case 0b000000:  // 0
+					Serial.print("Not active");
+					break;
+				case 0b000001:  // 1
+					Serial.print("Active");
+					break;
+				case 0b000010:  // 2
+					Serial.print("Error");
+					break;
+				case 0b000011:  // 3
+					Serial.print("Not available");
+					break;
+				}
 			}
 			if (VBusReceiveData.id == 0x1CFF0FAA) {
 				Serial.print(" buf[3]: ");
