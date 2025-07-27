@@ -27,6 +27,9 @@ char imuRoll[6];
 char imuPitch[6];
 char imuYawRate[6];
 
+elapsedMillis badQOStimer;
+
+
 // If odd characters showed up.
 void errorHandler()
 {
@@ -85,6 +88,56 @@ void GGA_Handler() //Rec'd GGA
     bnoTimer = 0;
     bnoTrigger = true;
 
+    if (useTM171)
+    {
+        imuTrigger = true;
+        imuTimer = 0;
+        BuildNmea();
+        if (qos >= 2)
+        {
+
+            if (badQOStimer > 15000) // If ethernet running send the GPS there
+            {
+                badQOStimer = 0;
+
+                String message = "IMU (TM171) not ready! Temp: " + String(TemperatureV.fValue) + "C  QoS: " + String(qos);
+                Serial.print("Sending Hardware message!!                  ");
+                Serial.println(message);
+
+                uint8_t hardwareMessage[128] = { 0x80, 0x81, 0x7E, 221 };
+
+                int msgLen = message.length();    // UTF-8 byte count (assuming no extended chars)
+                int totalLength = 7 + msgLen + 1; // header(7) + message + CRC(1)
+
+                hardwareMessage[4] = msgLen + 2;
+                hardwareMessage[5] = 5; // seconds to display
+                hardwareMessage[6] = 0; // color 0 or 1
+
+                // Copy message bytes into hardwareMessage[7..]
+                message.getBytes(&hardwareMessage[7], msgLen + 1); // +1 for null-terminator safety
+
+                // checksum
+                int16_t CK_A = 0;
+                for (uint8_t i = 2; i < 7 + msgLen; i++)
+                {
+                    CK_A = (CK_A + hardwareMessage[i]);
+                }
+                hardwareMessage[7 + msgLen] = CK_A; // CRC
+
+                Serial.println("Hardware Message Dump:");
+                for (int i = 0; i < totalLength; i++)
+                {
+                    if (i % 16 == 0)
+                        Serial.print("\n");
+                    Serial.printf("%02X ", hardwareMessage[i]);
+                }
+                Serial.println("\n");
+                Udp.beginPacket(ipDestination, AOGPort);
+                Udp.write(hardwareMessage, totalLength);
+                Udp.endPacket();
+            }
+        }
+    }
     if (useBNO08x)
     {
        imuHandler();          //Get IMU data ready
@@ -148,8 +201,32 @@ void ZDA_Handler()
 void imuHandler()
 {
     int16_t temp = 0;
+    if (useTM171)
+    {
+        float angVel;
 
-    if (useBNO08x)
+        // Fill rest of Panda Sentence - Heading
+        itoa(YawV.fValue * 10, imuHeading, 10);
+
+        if (steerConfig.IsUseY_Axis)
+        {
+            // the pitch x100
+            itoa(PitchV.fValue * 10, imuPitch, 10);
+
+            // the roll x100
+            itoa(RollV.fValue * 10, imuRoll, 10);
+        }
+        else
+        {
+            // the pitch x100
+            itoa(RollV.fValue * 10, imuPitch, 10);
+
+            // the roll x100
+            itoa(PitchV.fValue * 10, imuRoll, 10);
+        }
+
+        itoa(0, imuYawRate, 10);
+    } else if (useBNO08x)
     {
         //BNO is reading in its own timer    
         // Fill rest of Panda Sentence - Heading
@@ -166,9 +243,7 @@ void imuHandler()
 
         // YawRate - 0 for now
         itoa(0, imuYawRate, 10);
-    }
-
-    else if (useBNO08xRVC)
+    } else if (useBNO08xRVC)
     {
         float angVel;
 
