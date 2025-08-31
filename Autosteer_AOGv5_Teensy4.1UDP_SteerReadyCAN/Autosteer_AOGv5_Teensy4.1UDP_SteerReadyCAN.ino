@@ -162,8 +162,7 @@ byte endPress[8] = { 0x15, 0x21, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00 };    //  pr
 byte endLift[8] = { 0x15, 0x21, 0x06, 0xCA, 0x00, 0x04, 0x00, 0x00 };    //  lift big end
 //byte goPress[8]        = {0x15, 0x22, 0x06, 0xCA, 0x80, 0x01, 0x00, 0x00} ;    //  press little go
 //byte goLift[8]         = {0x15, 0x22, 0x06, 0xCA, 0x00, 0x02, 0x00, 0x00} ;    //  lift little go
-//byte end
-// Press[8]       = {0x15, 0x23, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00} ;    //  press little end
+//byte endPress[8]       = {0x15, 0x23, 0x06, 0xCA, 0x80, 0x03, 0x00, 0x00} ;    //  press little end
 //byte endLift[8]        = {0x15, 0x23, 0x06, 0xCA, 0x00, 0x04, 0x00, 0x00} ;    //  lift little end
 
 //byte csm1Press[8]        = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7A} ; // CLAAS CSM1 button press Stage5 tractors
@@ -184,7 +183,6 @@ float outputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -
 float outputWASFendt[] = { -60.00, -54.0, -48.0, -42.3, -36.1, -30.1, -23.4, -17.1, -11.0, -5.5, 0, 5.5, 11.0, 17.1, 23.4, 30.1, 36.1, 42.3, 48.0, 54.0, 60.0 };  //Fendt 720 SCR, CPD = 80
 
 boolean sendCAN = 0;                //Send CAN message every 2nd cycle (If needed ?)
-uint32_t lastCANCommand = millis(); // Time to ignore the last CANbutton press from, prevent "bounce" on CAN engage press
 uint8_t steeringValveReady = 0;     //Variable for Steering Valve State from CAN
 boolean intendToSteer = 0;          //Do We Intend to Steer?
 
@@ -470,7 +468,7 @@ void setup()
 		EEPROM.put(40, steerConfig);
 		EEPROM.put(60, networkAddress);
 		EEPROM.update(70, Brand);
-		EEPROM.update(72, gpsMode);
+		EEPROM.update(72, 4); // set 460800 as default
 		//EEPROM.put(80, outputWAS);
 	}
 	else
@@ -538,6 +536,7 @@ void setup()
 	else if (Brand == 7) Serial.println("Brand = AgOpenGPS (Set Via Service Tool)");
 	else if (Brand == 8) Serial.println("Brand = Cat MT Late (Set Via Service Tool)");
 	else if (Brand == 9) Serial.println("Brand = Cat MT Early (Set Via Service Tool)");
+	else if (Brand == 10) Serial.println("Brand = Deutz (Set Via Service Tool)");
 	else Serial.println("No Tractor Brand Set, Set Via Service Tool");
 
 	Serial.println("\r\nGPS Mode:");

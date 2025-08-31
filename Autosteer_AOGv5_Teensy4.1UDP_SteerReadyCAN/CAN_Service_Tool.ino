@@ -59,6 +59,7 @@ void Service_Tool (void)
         else if ( b == '7') AgOpenGPS();
         else if ( b == '8') CatMT();
         else if ( b == '9') CatMT_Early();
+        else if ( b == 'D') Deutz();
         else if ( b == 'R') ReadCAN();
         else if ( b == 'S') StopCAN();
         else if ( b == 'Z') setupPVED();
@@ -93,6 +94,7 @@ void Service_Tool (void)
 
 //**************************************************************************************
 void Help(){
+  Serial.println("==============================");
   Serial.println("? = Help");
   Serial.println("X = Exit Service Mode");
   Serial.println("0 = Set Brand as Claas");
@@ -105,6 +107,8 @@ void Help(){
   Serial.println("7 = Set Brand as AgOpenGPS");
   Serial.println("8 = Set Brand as Cat MT Late");
   Serial.println("9 = Set Brand as Cat MT Early");
+  Serial.println("D = Set Brand as Deutz");
+  Serial.println("==============================");
   Serial.println("R = Show CAN Data");
   Serial.println("S = Stop Data");
   Serial.println("Z = Danfoss PVED parameter setup");
@@ -202,6 +206,14 @@ void CatMT_Early() {
     EEPROM.update(70, 9);
     Brand = EEPROM.read(70);
     Serial.println("Brand Set Cat MT Early, Restarting Teensy");
+    delay(1000);
+    SCB_AIRCR = 0x05FA0004; //Teensy Reset
+    Serial.println(" ");
+}
+void Deutz() {
+    EEPROM.update(70, 10);
+    Brand = EEPROM.read(70);
+    Serial.println("Brand Set Deutza, Restarting Teensy");
     delay(1000);
     SCB_AIRCR = 0x05FA0004; //Teensy Reset
     Serial.println(" ");
