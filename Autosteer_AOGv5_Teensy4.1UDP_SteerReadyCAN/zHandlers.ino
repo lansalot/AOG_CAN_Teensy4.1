@@ -137,8 +137,9 @@ void GGA_Handler() //Rec'd GGA
                 Udp.endPacket();
             }
         }
-    }
-    if (useBNO08x)
+    } 
+    
+    else if (useBNO08x)
     {
        imuHandler();          //Get IMU data ready
        BuildNmea();           //Build & send data GPS data to AgIO
