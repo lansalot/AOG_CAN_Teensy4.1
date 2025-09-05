@@ -26,7 +26,7 @@ void CAN_setup(void) {
 	}
 	if (Brand == 1) {
 		V_Bus.setFIFOFilter(0, 0x0CAC1C13, EXT);  //Valtra Curve Data & Valve State Message
-		V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message
+		V_Bus.setFIFOFilter(1, 0x18EF1C32, EXT);  //Valtra Engage Message  (possibly ID 00 instead of 32)
 		V_Bus.setFIFOFilter(2, 0x18EF1CFC, EXT);  //Mccormick Engage Message
 		V_Bus.setFIFOFilter(3, 0x18EF1C00, EXT);  //MF Engage Message
 		V_Bus.setFIFOFilter(4, 0x18FF8306, EXT);  //Mccormick Joystick
@@ -35,6 +35,7 @@ void CAN_setup(void) {
 	if (Brand == 2) {
 		V_Bus.setFIFOFilter(0, 0x0CACAA08, EXT);  //CaseIH Curve Data & Valve State Message
 		V_Bus.setFIFOFilter(1, 0x18FFBB03, EXT);  //CaseIH Engage Message
+		// possibly 		V_Bus.setFIFOUserFilter(1, 0x0CEFAA08, 0x0CEF08AA, 0x0000FF00, EXT);
 		CANBUS_ModuleID = 0xAA;
 	}
 	if (Brand == 3) {
@@ -140,7 +141,13 @@ void CAN_setup(void) {
 	K_Bus.setFIFOFilter(REJECT_ALL);
 	//Put filters into here to let them through (All blocked by above line)
 	if (Brand == 1) {
-		K_Bus.setFIFOFilter(0, 0x45a, STD);  //Massey Ferguson joystick
+		K_Bus.setFIFOFilter(0, 0x45a, STD);			//Massey Ferguson joystick (non-S-series)
+		K_Bus.setFIFOFilter(1, 0xCFF2621, EXT);		// MF engage button (new S-series)
+		K_Bus.setFIFOFilter(2, 0x203, EXT);			// MF check valve is on K-bus - not used // 
+	}
+	if (Brand == 2) {
+		K_Bus.setFIFOFilter(0, 0x14FF7706, EXT);  //CaseIH Engage Message
+		K_Bus.setFIFOFilter(1, 0x18FE4523, EXT);  //CaseIH Rear Hitch Infomation
 	}
 	if (Brand == 3) {
 		K_Bus.setFIFOFilter(0, 0x613, STD);  //Fendt Arm Rest Buttons
@@ -186,8 +193,9 @@ void VBus_Send() {
 		VBusSendData.len = 8;
 		VBusSendData.buf[0] = lowByte(setCurve);
 		VBusSendData.buf[1] = highByte(setCurve);
-		if (intendToSteer == 1 || steeringValveReady == 0x40 || steeringValveReady == 0x10) VBusSendData.buf[2] = 253;
-		else VBusSendData.buf[2] = 252;
+		if (intendToSteer == 1) VBusSendData.buf[2] = 253; // from mf8s test
+		// if (intendToSteer == 1 || steeringValveReady == 0x40 || steeringValveReady == 0x10) VBusSendData.buf[2] = 253;
+		if (intendToSteer == 0) VBusSendData.buf[2] = 252;
 		VBusSendData.buf[3] = 0;
 		VBusSendData.buf[4] = 0;
 		VBusSendData.buf[5] = 0;
@@ -396,6 +404,19 @@ void VBus_Receive()
 			{
 				estCurve = ((VBusReceiveData.buf[1] << 8) + VBusReceiveData.buf[0]);  // CAN Buf[1]*256 + CAN Buf[0] = CAN Est Curve 
 				steeringValveReady = (VBusReceiveData.buf[2]);
+				//Massey S test code
+				static uint8_t lastValveState = steeringValveReady;
+				if (steeringValveReady == 80 && lastValveState == 20)
+				{
+					steeringValveReady = 20;
+					intendToSteer = 0;
+					VBus_Send();
+					intendToSteer = 1;
+				}
+				else
+				{
+					lastValveState = steeringValveReady;
+				}
 			}
 
 			//**Engage Message**
@@ -748,6 +769,15 @@ void K_Receive()
 				digitalWrite(engageLED, HIGH);
 				engageCAN = 1;
 				relayTime = ((millis() + 1000));
+			}
+			if (KBusReceiveData.id == 0xCFF2621) //**MF 7S  / MF 8s Engage Message**
+			{
+				if ((KBusReceiveData.buf[3]) & 4) // This should be a single bit comparison typically, was "== 0xF4" originally
+				{
+					Time = millis();
+					engageCAN = 1;
+					relayTime = ((millis() + 1000));
+				}
 			}
 		}
 
