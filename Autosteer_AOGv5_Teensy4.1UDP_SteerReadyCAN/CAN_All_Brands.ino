@@ -408,6 +408,7 @@ void VBus_Receive()
 				static uint8_t lastValveState = steeringValveReady;
 				if (steeringValveReady == 80 && lastValveState == 20)
 				{
+					sendHardwareMessage("MF8S Steering Valve Fault - Resetting Steering Controller",3);
 					steeringValveReady = 20;
 					intendToSteer = 0;
 					VBus_Send();
