@@ -36,6 +36,66 @@ void errorHandler()
   //nothing at the moment
 }
 
+// ----------------------------------------------------------
+// Send a hardware message with proper header, payload, and CRC
+// ----------------------------------------------------------
+void sendHardwareMessage(const String& message, byte seconds)
+{
+    uint8_t hardwareMessage[128] = { 0x80, 0x81, 0x7E, 221 };
+
+    int msgLen = message.length();    // byte count (ASCII assumed)
+    int totalLength = 7 + msgLen + 1; // header(7) + message + CRC(1)
+
+    hardwareMessage[4] = msgLen + 2;  // message length + display config
+    hardwareMessage[5] = seconds;           // seconds to display
+    hardwareMessage[6] = 0;           // color (0 = normal, 1 = alt)
+
+    // Copy message into buffer
+    message.getBytes(&hardwareMessage[7], msgLen + 1);
+
+    // Copy the range we need for checksum into temp buffer
+    uint8_t temp[128];
+    int checksumLen = 7 + msgLen - 2; // from index 2 up to 6+msgLen
+    memcpy(temp, hardwareMessage + 2, checksumLen);
+
+    // Sum for checksum
+    int16_t CK_A = 0;
+    for (int i = 0; i < checksumLen; i++)
+    {
+        CK_A += temp[i];
+    }
+    hardwareMessage[7 + msgLen] = CK_A; // CRC
+
+    // Debug dump
+    Serial.println("Hardware Message Dump:");
+    for (int i = 0; i < totalLength; i++)
+    {
+        if (i % 16 == 0) Serial.print("\n");
+        Serial.printf("%02X ", hardwareMessage[i]);
+    }
+    Serial.println("\n");
+
+    // Send via UDP
+    Udp.beginPacket(ipDestination, AOGPort);
+    Udp.write(hardwareMessage, totalLength);
+    Udp.endPacket();
+}
+
+const char* qosToString(uint8_t qos)
+{
+    switch (qos)
+    {
+    case 0: return "Service unavailable - Restarting";
+    case 1: return "Service unavailable - Fault";
+    case 2: return "Performance limited";
+    case 3: return "Basic performance";
+    case 4: return "Fine service";
+    case 5: return "Very good service";
+    default: return "Unknown QoS";
+    }
+}
+
+
 void GGA_Handler() //Rec'd GGA
 {
     // fix time
@@ -100,41 +160,10 @@ void GGA_Handler() //Rec'd GGA
             {
                 badQOStimer = 0;
 
-                String message = "IMU (TM171) not ready! Temp: " + String(TemperatureV.fValue) + "C  QoS: " + String(qos);
+                String message = "TM171 - Temp: " + String(TemperatureV.fValue) + "C  QoS: " + String(qos);
                 Serial.print("Sending Hardware message!!                  ");
                 Serial.println(message);
-
-                uint8_t hardwareMessage[128] = { 0x80, 0x81, 0x7E, 221 };
-
-                int msgLen = message.length();    // UTF-8 byte count (assuming no extended chars)
-                int totalLength = 7 + msgLen + 1; // header(7) + message + CRC(1)
-
-                hardwareMessage[4] = msgLen + 2;
-                hardwareMessage[5] = 5; // seconds to display
-                hardwareMessage[6] = 0; // color 0 or 1
-
-                // Copy message bytes into hardwareMessage[7..]
-                message.getBytes(&hardwareMessage[7], msgLen + 1); // +1 for null-terminator safety
-
-                // checksum
-                int16_t CK_A = 0;
-                for (uint8_t i = 2; i < 7 + msgLen; i++)
-                {
-                    CK_A = (CK_A + hardwareMessage[i]);
-                }
-                hardwareMessage[7 + msgLen] = CK_A; // CRC
-
-                Serial.println("Hardware Message Dump:");
-                for (int i = 0; i < totalLength; i++)
-                {
-                    if (i % 16 == 0)
-                        Serial.print("\n");
-                    Serial.printf("%02X ", hardwareMessage[i]);
-                }
-                Serial.println("\n");
-                Udp.beginPacket(ipDestination, AOGPort);
-                Udp.write(hardwareMessage, totalLength);
-                Udp.endPacket();
+                sendHardwareMessage(message, 5);
             }
         }
     } 
