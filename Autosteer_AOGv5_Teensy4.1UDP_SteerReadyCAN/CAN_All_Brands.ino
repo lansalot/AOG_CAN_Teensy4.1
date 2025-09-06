@@ -770,6 +770,7 @@ void K_Receive()
 				digitalWrite(engageLED, HIGH);
 				engageCAN = 1;
 				relayTime = ((millis() + 1000));
+				sendHardwareMessage("Engaged via headland button",3);
 			}
 			if (KBusReceiveData.id == 0xCFF2621) //**MF 7S  / MF 8s Engage Message**
 			{
@@ -778,6 +779,7 @@ void K_Receive()
 					Time = millis();
 					engageCAN = 1;
 					relayTime = ((millis() + 1000));
+					sendHardwareMessage("Engaged via autosteer button",3);
 				}
 			}
 		}

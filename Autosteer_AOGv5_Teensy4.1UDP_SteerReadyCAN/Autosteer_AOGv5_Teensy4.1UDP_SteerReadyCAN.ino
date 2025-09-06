@@ -1035,7 +1035,15 @@ void udpSteerRecv(int sizeToRead)
 			if (bitRead(sett, 1)) steerConfig.IsRelayActiveHigh = 1; else steerConfig.IsRelayActiveHigh = 0;
 			if (bitRead(sett, 2)) steerConfig.MotorDriveDirection = 1; else steerConfig.MotorDriveDirection = 0;
 			if (bitRead(sett, 3)) steerConfig.SingleInputWAS = 1; else steerConfig.SingleInputWAS = 0;
-			if (bitRead(sett, 4)) steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
+			if (bitRead(sett, 4)) { //steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
+				useBNO08x = false;
+				useTM171 = true;
+				sendHardwareMessage("Using TM171 IMU", 5);
+			} else {
+				useBNO08x = true;
+				useTM171 = false;
+				sendHardwareMessage("Using i2c BNO08x IMU", 5);
+			}
 			if (bitRead(sett, 5)) steerConfig.SteerSwitch = 1; else steerConfig.SteerSwitch = 0;
 			if (bitRead(sett, 6)) steerConfig.SteerButton = 1; else steerConfig.SteerButton = 0;
 			if (bitRead(sett, 7)) steerConfig.ShaftEncoder = 1; else steerConfig.ShaftEncoder = 0;
