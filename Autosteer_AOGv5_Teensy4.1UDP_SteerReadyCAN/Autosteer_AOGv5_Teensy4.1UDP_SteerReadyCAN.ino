@@ -403,6 +403,7 @@ void setup()
 			Serial.print("BNO08X ADDRESs: 0x");
 			Serial.println(bno08xAddress, HEX);
 			Serial.println("BNO08X Ok.");
+			sendHardwareMessage("BNO08x found on I2C",3);
 
 			// Initialize BNO080 lib        
 			if (bno08x.begin(bno08xAddress))
@@ -450,6 +451,7 @@ void setup()
 	delay(200);
 	TM171process();
 	if (TM171lastData <= 80) {
+		sendHardwareMessage("TM171 found on Serial5", 3);
 		Serial.println("Received data from TM171");
 		useTM171 = true;
 		imuHandler();
