@@ -116,8 +116,7 @@ void GGA_Handler() //Rec'd GGA
             if (badQOStimer > 15000) // If ethernet running send the GPS there
             {
                 badQOStimer = 0;
-
-                String message = "TM171 - Temp: " + String(TemperatureV.fValue) + "C  QoS: " + String(qos);
+                String message = "TM171 - Temp: " + String(TemperatureV.fValue) + "C  QoS: "; // +String(qosToString(qos));
                 Serial.print("Sending Hardware message!!                  ");
                 Serial.println(message);
                 sendHardwareMessage(message, 5);
@@ -259,17 +258,20 @@ void imuHandler()
         //Serial.print(bnoData.angVel);
         //Serial.print(", ");
         // YawRate
-        if (rvc.angCounter > 0)
-        {
-            angVel = ((float)bnoData.angVel) / (float)rvc.angCounter;
-            angVel *= 10.0;
-            rvc.angCounter = 0;
-            bnoData.angVel = (int16_t)angVel;
-        }
-        else
-        {
-            bnoData.angVel = 0;
-        }
+        // 
+        // 
+        // 
+        //if (rvc.angCounter > 0)
+        //{
+        //    angVel = ((float)bnoData.angVel) / (float)rvc.angCounter;
+        //    angVel *= 10.0;
+        //    rvc.angCounter = 0;
+        //    bnoData.angVel = (int16_t)angVel;
+        //}
+        //else
+        //{
+        //    bnoData.angVel = 0;
+        //}
 
         itoa(bnoData.angVel, imuYawRate, 10);
         bnoData.angVel = 0;

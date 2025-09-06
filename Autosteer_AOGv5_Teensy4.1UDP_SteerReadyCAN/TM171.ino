@@ -149,9 +149,9 @@ void TM171process() {
                 }
             }
             else {
-                Serial.println("CRC was bad :(");
-                Serial.print("Length: "); Serial.println(ImuData[2]);
-                Serial.print("Full len: "); Serial.println(packetLength + 5);
+                //Serial.println("CRC was bad :(");
+                //Serial.print("Length: "); Serial.println(ImuData[2]);
+                //Serial.print("Full len: "); Serial.println(packetLength + 5);
             }
             // Reset for next packet
       /*
