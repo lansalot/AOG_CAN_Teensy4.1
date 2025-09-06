@@ -429,23 +429,23 @@ void setup()
 		if (useBNO08x) break;
 	}
 
-	if (!useBNO08x)
-	{
-		static elapsedMillis rvcBnoTimer = 0;
-		Serial.println("\r\nChecking for serial BNO08x");
-		while (rvcBnoTimer < 1000)
-		{
-			//check if new bnoData
-			if (rvc.read(&bnoData))
-			{
-				useBNO08xRVC = true;
-				Serial.println("Serial BNO08x Good To Go :-)");
-				imuHandler();
-				break;
-			}
-		}
-		if (!useBNO08xRVC)  Serial.println("No Serial BNO08x not Connected or Found");
-	}
+	//if (!useBNO08x)
+	//{
+	//	static elapsedMillis rvcBnoTimer = 0;
+	//	Serial.println("\r\nChecking for serial BNO08x");
+	//	while (rvcBnoTimer < 1000)
+	//	{
+	//		//check if new bnoData
+	//		if (rvc.read(&bnoData))
+	//		{
+	//			useBNO08xRVC = true;
+	//			Serial.println("Serial BNO08x Good To Go :-)");
+	//			imuHandler();
+	//			break;
+	//		}
+	//	}
+	//	if (!useBNO08xRVC)  Serial.println("No Serial BNO08x not Connected or Found");
+	//}
 	TM171setup();
 	delay(200);
 	TM171process();
@@ -779,7 +779,8 @@ void loop()
 	{
 		imuTrigger = false;
 		imuHandler();
-	} else if (useBNO08x)
+	}
+	else if (useBNO08x)
 	{
 		Read_IMU();
 	}
@@ -1039,7 +1040,8 @@ void udpSteerRecv(int sizeToRead)
 				useBNO08x = false;
 				useTM171 = true;
 				sendHardwareMessage("Using TM171 IMU", 5);
-			} else {
+			}
+			else {
 				useBNO08x = true;
 				useTM171 = false;
 				sendHardwareMessage("Using i2c BNO08x IMU", 5);
