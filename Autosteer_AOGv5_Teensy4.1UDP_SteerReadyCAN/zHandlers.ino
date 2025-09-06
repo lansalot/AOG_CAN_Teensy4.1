@@ -116,8 +116,7 @@ void GGA_Handler() //Rec'd GGA
             if (badQOStimer > 15000) // If ethernet running send the GPS there
             {
                 badQOStimer = 0;
-                String message = "TM171 - Temp: " + String(TemperatureV.fValue) + "C  QoS: "; // +String(qosToString(qos));
-                Serial.print("Sending Hardware message!!                  ");
+                String message = "TM171 - Temp: " + String(TemperatureV.fValue); // +"C  QoS: " + String(qosToString(qos));
                 Serial.println(message);
                 sendHardwareMessage(message, 5);
             }
@@ -129,12 +128,6 @@ void GGA_Handler() //Rec'd GGA
        imuHandler();          //Get IMU data ready
        BuildNmea();           //Build & send data GPS data to AgIO
     }
-
-    else if (useBNO08xRVC)
-    {
-        BuildNmea();           //Build & send data GPS data to AgIO
-    }
-
     else
     {
         itoa(0, imuYawRate, 10);
@@ -229,52 +222,6 @@ void imuHandler()
 
         // YawRate - 0 for now
         itoa(0, imuYawRate, 10);
-    } else if (useBNO08xRVC)
-    {
-        float angVel;
-
-        // Fill rest of Panda Sentence - Heading
-        itoa(bnoData.yawX10, imuHeading, 10);
-
-        if (steerConfig.IsUseY_Axis)
-        {
-            // the pitch x100
-            itoa(bnoData.pitchX10, imuPitch, 10);
-
-            // the roll x100
-            itoa(bnoData.rollX10, imuRoll, 10);
-        }
-        else
-        {
-            // the pitch x100
-            itoa(bnoData.rollX10, imuPitch, 10);
-
-            // the roll x100
-            itoa(bnoData.pitchX10, imuRoll, 10);
-        }
-
-        //Serial.print(rvc.angCounter);
-        //Serial.print(", ");
-        //Serial.print(bnoData.angVel);
-        //Serial.print(", ");
-        // YawRate
-        // 
-        // 
-        // 
-        //if (rvc.angCounter > 0)
-        //{
-        //    angVel = ((float)bnoData.angVel) / (float)rvc.angCounter;
-        //    angVel *= 10.0;
-        //    rvc.angCounter = 0;
-        //    bnoData.angVel = (int16_t)angVel;
-        //}
-        //else
-        //{
-        //    bnoData.angVel = 0;
-        //}
-
-        itoa(bnoData.angVel, imuYawRate, 10);
-        bnoData.angVel = 0;
     }
 }
 

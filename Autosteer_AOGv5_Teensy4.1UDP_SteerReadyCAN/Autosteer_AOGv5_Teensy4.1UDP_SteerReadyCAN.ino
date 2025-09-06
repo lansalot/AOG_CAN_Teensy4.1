@@ -217,16 +217,12 @@ uint8_t N2K_129029_Data[48];
 //Swap BNO08x roll & pitch? - Note this is now sent from AgOpen
 
 //Roomba Vac mode for BNO085 and data
-#include "BNO_RVC.h"
-BNO_rvc rvc = BNO_rvc();
-BNO_rvcData bnoData;
 elapsedMillis bnoTimer;
 bool bnoTrigger = false;
 HardwareSerial* SerialIMU = &Serial5;   //IMU BNO-085
 
 // booleans to see what mode BNO08x
 bool useBNO08x = false;
-bool useBNO08xRVC = false;
 
 
 // BNO08x address variables to check where it is
@@ -384,8 +380,8 @@ void setup()
 	  ; // wait for serial port to connect. Needed for native USB port only
 	}*/
 
-	SerialIMU->begin(115200);
-	rvc.begin(SerialIMU);
+	//SerialIMU->begin(115200);
+	//rvc.begin(SerialIMU);
 
 	// Check for i2c BNO08x
 	uint8_t error;
@@ -431,23 +427,6 @@ void setup()
 		if (useBNO08x) break;
 	}
 
-	//if (!useBNO08x)
-	//{
-	//	static elapsedMillis rvcBnoTimer = 0;
-	//	Serial.println("\r\nChecking for serial BNO08x");
-	//	while (rvcBnoTimer < 1000)
-	//	{
-	//		//check if new bnoData
-	//		if (rvc.read(&bnoData))
-	//		{
-	//			useBNO08xRVC = true;
-	//			Serial.println("Serial BNO08x Good To Go :-)");
-	//			imuHandler();
-	//			break;
-	//		}
-	//	}
-	//	if (!useBNO08xRVC)  Serial.println("No Serial BNO08x not Connected or Found");
-	//}
 	TM171setup();
 	delay(200);
 	TM171process();
@@ -786,16 +765,6 @@ void loop()
 	{
 		Read_IMU();
 	}
-	else {
-		//RVC BNO08x
-		if (rvc.read(&bnoData)) useBNO08xRVC = true;
-	}
-
-	if (useBNO08xRVC && bnoTimer > 40 && bnoTrigger)
-	{
-		bnoTrigger = false;
-		imuHandler();   //Get IMU data ready
-	}
 
 	if (gpsMode == 1 || gpsMode == 2)
 	{
@@ -955,7 +924,7 @@ void udpSteerRecv(int sizeToRead)
 			Udp.write(helloFromAutoSteer, sizeof(helloFromAutoSteer));
 			Udp.endPacket();
 
-			if (useBNO08x || useBNO08xRVC || useTM171)
+			if (useBNO08x || useTM171)
 			{
 				Udp.beginPacket(ipDestination, 9999);
 				Udp.write(helloFromIMU, sizeof(helloFromIMU));

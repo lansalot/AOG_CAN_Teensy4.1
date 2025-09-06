@@ -6,6 +6,10 @@ void sendHardwareMessage(const String& message, byte seconds)
     uint8_t hardwareMessage[128] = { 0x80, 0x81, 0x7E, 221 };
 
     int msgLen = message.length();    // byte count (ASCII assumed)
+    if (msgLen > 120) {
+        Serial.println("Error: Message too long for hardware message buffer");
+        return;
+    }
     int totalLength = 7 + msgLen + 1; // header(7) + message + CRC(1)
 
     hardwareMessage[4] = msgLen + 2;  // message length + display config
@@ -22,20 +26,11 @@ void sendHardwareMessage(const String& message, byte seconds)
 
     // Sum for checksum
     int16_t CK_A = 0;
-    for (int i = 0; i < checksumLen; i++)
+    for (int i = 2; i < 7 + msgLen; i++)
     {
-        CK_A += temp[i];
+        CK_A += hardwareMessage[i];
     }
     hardwareMessage[7 + msgLen] = CK_A; // CRC
-
-    // Debug dump
-    Serial.println("Hardware Message Dump:");
-    for (int i = 0; i < totalLength; i++)
-    {
-        if (i % 16 == 0) Serial.print("\n");
-        Serial.printf("%02X ", hardwareMessage[i]);
-    }
-    Serial.println("\n");
 
     // Send via UDP
     Udp.beginPacket(ipDestination, AOGPort);

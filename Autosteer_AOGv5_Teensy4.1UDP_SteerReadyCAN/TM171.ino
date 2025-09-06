@@ -78,7 +78,8 @@ void TM171process() {
             if (packetLength + 5 > sizeof(ImuData))
             {
                 parseState = WAIT_HEADER_1;
-                Serial.println("Too big data from TM171!");
+                Serial.print("Too big data from TM171! ");
+				Serial.println(packetLength + 5);
             }
             break;
 
