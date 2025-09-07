@@ -116,7 +116,7 @@ void GGA_Handler() //Rec'd GGA
             if (badQOStimer > 15000) // If ethernet running send the GPS there
             {
                 badQOStimer = 0;
-                String message = "TM171 - Temp: " + String(TemperatureV.fValue); // +"C  QoS: " + String(qosToString(qos));
+                String message = "TM171 - Temp: " + String(TemperatureV.fValue) +"C  QoS: " + String(qosToString(qos));
                 Serial.println(message);
                 sendHardwareMessage(message, 5);
             }

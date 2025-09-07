@@ -764,7 +764,7 @@ void K_Receive()
 
 		if (Brand == 1)
 		{
-			if (KBusReceiveData.buf[1] == 0x45a && KBusReceiveData.buf[1] & 0x04) // Massey 6/7/8000 series headland button
+			if (KBusReceiveData.id == 0x45a && KBusReceiveData.buf[1] & 0x04) // Massey 6/7/8000 series headland button
 			{
 				Time = millis();
 				digitalWrite(engageLED, HIGH);
