@@ -113,7 +113,7 @@ void GGA_Handler() //Rec'd GGA
         if (qos >= 2)
         {
 
-            if (badQOStimer > 15000) // If ethernet running send the GPS there
+            if (badQOStimer > 60000) // If ethernet running send the QoS there
             {
                 badQOStimer = 0;
                 String message = "TM171 - Temp: " + String(TemperatureV.fValue) +"C  QoS: " + String(qosToString(qos));
