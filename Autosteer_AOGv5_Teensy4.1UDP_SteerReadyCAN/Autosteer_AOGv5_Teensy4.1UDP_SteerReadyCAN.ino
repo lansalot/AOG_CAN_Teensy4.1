@@ -47,6 +47,7 @@
 
 String inoVersion = ("\r\nAgOpenGPS Tony UDP CANBUS Ver 04.05.2024");
 
+
 ////////////////// User Settings /////////////////////////  
 
 //How many degrees before decreasing Max PWM
@@ -219,7 +220,7 @@ uint8_t N2K_129029_Data[48];
 //Roomba Vac mode for BNO085 and data
 elapsedMillis bnoTimer;
 bool bnoTrigger = false;
-HardwareSerial* SerialIMU = &Serial5;   //IMU BNO-085
+HardwareSerial* SerialIMU = &Serial5;   //IMU BNO-085 or TM171
 
 // booleans to see what mode BNO08x
 bool useBNO08x = false;
@@ -406,7 +407,7 @@ void setup()
 			if (bno08x.begin(bno08xAddress))
 			{
 				Wire.setClock(400000); //Increase I2C data rate to 400kHz
-
+				//bno08x.enableDebugging();
 				delay(300);
 
 				// Use GameRotationVector
@@ -426,6 +427,8 @@ void setup()
 		}
 		if (useBNO08x) break;
 	}
+	
+	if (!useBNO08x) sendHardwareMessage("No i2c BNO08x found",2);
 
 	TM171setup();
 	delay(200);
@@ -555,7 +558,6 @@ void loop()
 {
 
 	currentTime = millis();
-
 	//--Main Timed Loop----------------------------------   
 	if (currentTime - lastTime >= LOOP_TIME)
 	{
@@ -1007,16 +1009,7 @@ void udpSteerRecv(int sizeToRead)
 			if (bitRead(sett, 1)) steerConfig.IsRelayActiveHigh = 1; else steerConfig.IsRelayActiveHigh = 0;
 			if (bitRead(sett, 2)) steerConfig.MotorDriveDirection = 1; else steerConfig.MotorDriveDirection = 0;
 			if (bitRead(sett, 3)) steerConfig.SingleInputWAS = 1; else steerConfig.SingleInputWAS = 0;
-			if (bitRead(sett, 4)) { //steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
-				useBNO08x = false;
-				useTM171 = true;
-				sendHardwareMessage("Using TM171 IMU", 5);
-			}
-			else {
-				useBNO08x = true;
-				useTM171 = false;
-				sendHardwareMessage("Using i2c BNO08x IMU", 5);
-			}
+			if (bitRead(sett, 4)) steerConfig.CytronDriver = 1; else steerConfig.CytronDriver = 0;
 			if (bitRead(sett, 5)) steerConfig.SteerSwitch = 1; else steerConfig.SteerSwitch = 0;
 			if (bitRead(sett, 6)) steerConfig.SteerButton = 1; else steerConfig.SteerButton = 0;
 			if (bitRead(sett, 7)) steerConfig.ShaftEncoder = 1; else steerConfig.ShaftEncoder = 0;

@@ -51,11 +51,11 @@ boolean BNO080::begin(uint8_t deviceAddress, TwoWire &wirePort, uint8_t intPin)
 	sendPacket(CHANNEL_CONTROL, 2);
 
 	//Now we wait for response
-	if (receivePacket() == true)
+	if (receivePacket())
 	{
 		if (shtpData[0] == SHTP_REPORT_PRODUCT_ID_RESPONSE)
 		{
-			if (_printDebug == true)
+			if (_printDebug)
 			{
 				_debugPort->print(F("SW Version Major: 0x"));
 				_debugPort->print(shtpData[2], HEX);
@@ -135,10 +135,10 @@ boolean BNO080::beginSPI(uint8_t user_CSPin, uint8_t user_WAKPin, uint8_t user_I
 
 	//Now we wait for response
 	waitForSPI();
-	if (receivePacket() == true)
+	if (receivePacket())
 	{
 		if (shtpData[0] == SHTP_REPORT_PRODUCT_ID_RESPONSE)
-			if (_printDebug == true)
+			if (_printDebug)
 			{
 				_debugPort->print(F("SW Version Major: 0x"));
 				_debugPort->print(shtpData[2], HEX);
@@ -186,7 +186,7 @@ uint16_t BNO080::getReadings(void)
 			return 0;
 	}
 
-	if (receivePacket() == true)
+	if (receivePacket())
 	{
 		//Check to see if this packet is a sensor reporting its data to us
 		if (shtpHeader[2] == CHANNEL_REPORTS && shtpData[0] == SHTP_REPORT_BASE_TIMESTAMP)
@@ -385,7 +385,7 @@ uint16_t BNO080::parseInputReport(void)
 	}
 	else if (shtpData[5] == SHTP_REPORT_COMMAND_RESPONSE)
 	{
-		if (_printDebug == true)
+		if (_printDebug)
 		{
 			_debugPort->println(F("!"));
 		}
@@ -394,7 +394,7 @@ uint16_t BNO080::parseInputReport(void)
 
 		if (command == COMMAND_ME_CALIBRATE)
 		{
-			if (_printDebug == true)
+			if (_printDebug)
 			{
 				_debugPort->println(F("ME Cal report found!"));
 			}
@@ -502,7 +502,7 @@ void BNO080::getQuat(float &i, float &j, float &k, float &real, float &radAccura
 float BNO080::getQuatI()
 {
 	float quat = qToFloat(rawQuatI, rotationVector_Q1);
-	if (_printDebug == true)
+	if (_printDebug)
 	{
 		if ((quat < -1.0) || (quat > 1.0))
 		{
@@ -521,7 +521,7 @@ float BNO080::getQuatI()
 float BNO080::getQuatJ()
 {
 	float quat = qToFloat(rawQuatJ, rotationVector_Q1);
-	if (_printDebug == true)
+	if (_printDebug)
 	{
 		if ((quat < -1.0) || (quat > 1.0)) // Debug the occasional non-unitary Quat
 		{
@@ -540,7 +540,7 @@ float BNO080::getQuatJ()
 float BNO080::getQuatK()
 {
 	float quat = qToFloat(rawQuatK, rotationVector_Q1);
-	if (_printDebug == true)
+	if (_printDebug)
 	{
 		if ((quat < -1.0) || (quat > 1.0)) // Debug the occasional non-unitary Quat
 		{
@@ -893,7 +893,7 @@ float BNO080::getRange(uint16_t recordID)
 //Use readFRSdata for pulling out multi-word objects for a sensor (Vendor data for example)
 uint32_t BNO080::readFRSword(uint16_t recordID, uint8_t wordNumber)
 {
-	if (readFRSdata(recordID, wordNumber, 1) == true) //Get word number, just one word in length from FRS
+	if (readFRSdata(recordID, wordNumber, 1)) //Get word number, just one word in length from FRS
 		return (metaData[0]);						  //Return this one word
 
 	return (0); //Error
@@ -965,7 +965,7 @@ bool BNO080::readFRSdata(uint16_t recordID, uint8_t startLocation, uint8_t words
 
 		if (spot >= MAX_METADATA_SIZE)
 		{
-			if (_printDebug == true)
+			if (_printDebug)
 				_debugPort->println(F("metaData array over run. Returning."));
 			return (true); //We have run out of space in our array. Bail.
 		}
@@ -990,10 +990,10 @@ void BNO080::softReset(void)
 
 	//Read all incoming data and flush it
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 }
 
@@ -1008,10 +1008,10 @@ void BNO080::modeOn(void)
 
 	//Read all incoming data and flush it
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 }
 
@@ -1026,10 +1026,10 @@ void BNO080::modeSleep(void)
 
 	//Read all incoming data and flush it
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 	delay(50);
-	while (receivePacket() == true)
+	while (receivePacket())
 		; //delay(1);
 }
 
@@ -1054,7 +1054,7 @@ uint8_t BNO080::resetReason()
 	sendPacket(CHANNEL_CONTROL, 2);
 
 	//Now we wait for response
-	if (receivePacket() == true)
+	if (receivePacket())
 	{
 		if (shtpData[0] == SHTP_REPORT_PRODUCT_ID_RESPONSE)
 		{
@@ -1373,7 +1373,7 @@ boolean BNO080::waitForI2C()
 		delay(1);
 	}
 
-	if (_printDebug == true)
+	if (_printDebug)
 		_debugPort->println(F("I2C timeout"));
 	return (false);
 }
@@ -1387,12 +1387,12 @@ boolean BNO080::waitForSPI()
 	{
 		if (digitalRead(_int) == LOW)
 			return (true);
-		if (_printDebug == true)
+		if (_printDebug)
 			_debugPort->println(F("SPI Wait"));
 		delay(1);
 	}
 
-	if (_printDebug == true)
+	if (_printDebug)
 		_debugPort->println(F("SPI INT timeout"));
 	return (false);
 }
@@ -1475,7 +1475,7 @@ boolean BNO080::receivePacket(void)
 		//This bit indicates if this package is a continuation of the last. Ignore it for now.
 		//TODO catch this as an error and exit
 
-		// if (_printDebug == true)
+		// if (_printDebug)
 		// {
 		// 	_debugPort->print(F("receivePacket (I2C): dataLength is: "));
 		// 	_debugPort->println(dataLength);
@@ -1600,7 +1600,7 @@ boolean BNO080::sendPacket(uint8_t channelNumber, uint8_t dataLength)
 
 		if (i2cResult != 0)
 		{
-			if (_printDebug == true)
+			if (_printDebug)
 			{
 				_debugPort->print(F("sendPacket(I2C): endTransmission returned: "));
 				_debugPort->println(i2cResult);
@@ -1615,7 +1615,7 @@ boolean BNO080::sendPacket(uint8_t channelNumber, uint8_t dataLength)
 //Pretty prints the contents of the current shtp header and data packets
 void BNO080::printPacket(void)
 {
-	if (_printDebug == true)
+	if (_printDebug)
 	{
 		uint16_t packetLength = (uint16_t)shtpHeader[1] << 8 | shtpHeader[0];
 
@@ -1674,7 +1674,7 @@ void BNO080::printPacket(void)
 //Pretty prints the contents of the current shtp header (only)
 void BNO080::printHeader(void)
 {
-	if (_printDebug == true)
+	if (_printDebug)
 	{
 		//Print the four byte header
 		_debugPort->print(F("Header:"));
